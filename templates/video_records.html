@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>视频记录 - 农作物病害识别系统</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/common.css">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', 'PingFang SC', 'Microsoft YaHei', sans-serif; background: #f0fdf4; }
+    a { text-decoration: none; color: inherit; }
+    .app-container { display: flex; min-height: 100vh; }
+    .sidebar { width: 280px; background: linear-gradient(180deg, #14532d 0%, #166534 50%, #15803d 100%); position: fixed; top: 0; left: 0; bottom: 0; display: flex; flex-direction: column; z-index: 100; transition: transform 0.3s ease; }
+    .sidebar.collapsed { transform: translateX(-100%); }
+    .sidebar-header { padding: 24px 24px 20px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+    .sidebar-logo { display: flex; align-items: center; gap: 14px; }
+    .sidebar-logo-icon { width: 48px; height: 48px; background: rgba(255,255,255,0.15); border-radius: 14px; display: flex; align-items: center; justify-content: center; }
+    .sidebar-logo-icon svg { width: 28px; height: 28px; color: white; }
+    .sidebar-logo-text { color: white; }
+    .sidebar-logo-title { font-size: 1.125rem; font-weight: 700; }
+    .sidebar-logo-subtitle { font-size: 0.75rem; opacity: 0.8; margin-top: 2px; }
+    .sidebar-nav { flex: 1; padding: 16px 12px; overflow-y: auto; }
+    .nav-section { margin-bottom: 24px; }
+    .nav-section-title { font-size: 0.6875rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(255,255,255,0.5); padding: 0 12px; margin-bottom: 8px; }
+    .nav-item { display: flex; align-items: center; gap: 14px; padding: 12px 16px; border-radius: 12px; color: rgba(255,255,255,0.8); font-size: 0.9375rem; font-weight: 500; transition: all 0.2s; cursor: pointer; margin-bottom: 4px; }
+    .nav-item:hover { background: rgba(255,255,255,0.1); color: white; }
+    .nav-item.active { background: rgba(255,255,255,0.2); color: white; }
+    .nav-item svg { width: 22px; height: 22px; flex-shrink: 0; }
+    .sidebar-footer { padding: 16px 20px; border-top: 1px solid rgba(255,255,255,0.1); }
+    .user-info { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 12px; background: rgba(255,255,255,0.1); cursor: pointer; }
+    .user-avatar { width: 42px; height: 42px; border-radius: 12px; background: linear-gradient(135deg, #4ade80, #22c55e); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 1rem; }
+    .user-details { flex: 1; min-width: 0; }
+    .user-name { font-size: 0.9375rem; font-weight: 600; color: white; }
+    .user-role { font-size: 0.75rem; color: rgba(255,255,255,0.7); }
+    .main-wrapper { flex: 1; margin-left: 280px; transition: margin-left 0.3s ease; }
+    .header { height: 72px; background: white; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between; padding: 0 28px; position: sticky; top: 0; z-index: 50; }
+    .header-left { display: flex; align-items: center; gap: 20px; }
+    .menu-toggle { width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #64748b; cursor: pointer; transition: all 0.2s; }
+    .menu-toggle:hover { background: #f1f5f9; color: #1e293b; }
+    .menu-toggle svg { width: 24px; height: 24px; }
+    .header-title { font-size: 1.125rem; font-weight: 600; color: #1e293b; }
+    .header-breadcrumb { display: flex; align-items: center; gap: 8px; font-size: 0.875rem; color: #64748b; }
+    .header-right { display: flex; align-items: center; gap: 12px; }
+    .page-content { padding: 28px; }
+    .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+    .page-title { font-size: 1.5rem; font-weight: 700; color: #1e293b; margin-bottom: 4px; }
+    .page-subtitle { font-size: 0.875rem; color: #64748b; }
+    .records-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 20px; }
+    .record-card { background: white; border-radius: 16px; border: 1px solid #e2e8f0; overflow: hidden; transition: all 0.3s ease; }
+    .record-card:hover { transform: translateY(-4px); box-shadow: 0 12px 24px rgba(0,0,0,0.08); border-color: #14b8a6; }
+    .record-video { width: 100%; height: 200px; object-fit: cover; background: #1e293b; }
+    .record-content { padding: 20px; }
+    .record-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 12px; }
+    .record-title { font-size: 1rem; font-weight: 700; color: #1e293b; }
+    .record-badge { padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; background: rgba(20, 184, 166, 0.1); color: #0d9488; }
+    .record-meta { display: flex; flex-direction: column; gap: 6px; }
+    .record-meta-item { display: flex; align-items: center; gap: 8px; font-size: 0.8125rem; color: #64748b; }
+    .record-meta-item svg { width: 14px; height: 14px; color: #94a3b8; }
+    .record-actions { display: flex; gap: 8px; margin-top: 16px; padding-top: 16px; border-top: 1px solid #e2e8f0; }
+    .record-actions .btn { flex: 1; padding: 8px 12px; font-size: 0.8125rem; }
+    .btn-danger { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; border: none; }
+    .btn-danger:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3); }
+    .empty-state { text-align: center; padding: 80px 20px; background: white; border-radius: 20px; border: 1px solid #e2e8f0; }
+    .empty-icon { width: 80px; height: 80px; background: #f1f5f9; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; }
+    .empty-icon svg { width: 36px; height: 36px; color: #94a3b8; }
+    .empty-title { font-size: 1.125rem; font-weight: 600; color: #1e293b; margin-bottom: 8px; }
+    .empty-desc { font-size: 0.875rem; color: #64748b; }
+    .pagination { display: flex; justify-content: center; gap: 8px; margin-top: 32px; }
+    .pagination-btn { min-width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 10px; font-size: 0.875rem; font-weight: 500; color: #64748b; background: white; border: 1px solid #e2e8f0; cursor: pointer; transition: all 0.2s; }
+    .pagination-btn:hover:not(.active):not(:disabled) { border-color: #14b8a6; color: #14b8a6; }
+    .pagination-btn.active { background: #14b8a6; color: white; border-color: #14b8a6; }
+    .pagination-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    @media (max-width: 900px) { .sidebar { transform: translateX(-100%); } .sidebar.open { transform: translateX(0); } .main-wrapper { margin-left: 0; } }
+    @media (max-width: 640px) { .page-content { padding: 16px; } .header { padding: 0 16px; } .records-grid { grid-template-columns: 1fr; } }
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; visibility: hidden; transition: all 0.3s; }
+    .modal-overlay.active { opacity: 1; visibility: visible; }
+    .modal { background: white; border-radius: 20px; box-shadow: 0 25px 50px rgba(0,0,0,0.3); width: 95%; max-width: 900px; max-height: 90vh; overflow-y: auto; transform: scale(0.95); transition: transform 0.3s; }
+    .modal-overlay.active .modal { transform: scale(1); }
+    .modal-header { padding: 20px 24px; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between; }
+    .modal-title { font-size: 1.125rem; font-weight: 700; color: #1e293b; }
+    .modal-close { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #64748b; cursor: pointer; transition: all 0.2s; background: none; border: none; }
+    .modal-close:hover { background: #f1f5f9; color: #1e293b; }
+    .modal-body { padding: 24px; }
+    .detail-images { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
+    .detail-image-box { background: #f8fafc; border-radius: 12px; padding: 16px; }
+    .detail-image-label { font-size: 0.875rem; font-weight: 600; color: #64748b; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+    .detail-image-label svg { width: 16px; height: 16px; }
+    .detail-video { width: 100%; border-radius: 8px; border: 1px solid #e2e8f0; background: #1e293b; }
+    .detail-info { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+    .detail-info-item { background: #f8fafc; padding: 16px; border-radius: 12px; }
+    .detail-info-label { font-size: 0.75rem; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+    .detail-info-value { font-size: 1rem; font-weight: 600; color: #1e293b; }
+    .modal-footer { padding: 16px 24px; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 12px; background: #f8fafc; border-radius: 0 0 20px 20px; }
+    @media (max-width: 640px) { .detail-images { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header"><div class="sidebar-logo"><div class="sidebar-logo-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></div><div class="sidebar-logo-text"><div class="sidebar-logo-title">CropDisease</div><div class="sidebar-logo-subtitle">农作物病害识别系统</div></div></div></div>
+      <nav class="sidebar-nav">
+        <div class="nav-section"><div class="nav-section-title">主菜单</div><a href="/dashboard" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg><span>仪表盘</span></a></div>
+        <div class="nav-section"><div class="nav-section-title">智能检测</div><a href="/img-predict" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><span>图片预测</span></a><a href="/video-predict" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg><span>视频预测</span></a><a href="/camera-predict" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg><span>摄像头预测</span></a></div>
+        <div class="nav-section"><div class="nav-section-title">历史记录</div><a href="/img-records" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span>图片记录</span></a><a href="/video-records" class="nav-item active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg><span>视频记录</span></a><a href="/camera-records" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg><span>摄像头记录</span></a></div>
+        <div class="nav-section"><div class="nav-section-title">系统管理</div><a href="/user-manage" class="nav-item" id="navUserManage" style="display:none;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>用户管理</span></a><a href="/settings" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span>系统设置</span></a><a href="/personal" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>个人中心</span></a></div>
+      </nav>
+      <div class="sidebar-footer"><div class="user-info" onclick="Utils.logout()"><div class="user-avatar" id="userAvatar">管</div><div class="user-details"><div class="user-name" id="userName">管理员</div><div class="user-role" id="userRole">管理员</div></div></div></div>
+    </aside>
+
+    <div class="main-wrapper" id="mainWrapper">
+      <header class="header">
+        <div class="header-left">
+          <div class="menu-toggle" id="menuToggle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg></div>
+          <div><h1 class="header-title">视频记录</h1><div class="header-breadcrumb"><span>首页</span> / <span>历史记录</span> / <span>视频记录</span></div></div>
+        </div>
+        <div class="header-right">
+        </div>
+      </header>
+
+      <main class="page-content">
+        <div class="page-header">
+          <div><h2 class="page-title">视频检测历史</h2><p class="page-subtitle">共 <span id="totalCount">0</span> 条记录</p></div>
+        </div>
+        <div class="records-grid" id="recordsGrid">
+          <div class="empty-state" id="emptyState">
+            <div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg></div>
+            <h3 class="empty-title">暂无记录</h3>
+            <p class="empty-desc">开始使用视频预测功能来创建您的第一条记录</p>
+          </div>
+        </div>
+        <div class="pagination" id="pagination"></div>
+      </main>
+    </div>
+  </div>
+
+  <!-- 详情模态框 -->
+  <div class="modal-overlay" id="detailModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">检测详情</h3>
+        <button class="modal-close" onclick="closeDetailModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      </div>
+      <div class="modal-body">
+        <div class="detail-images">
+          <div class="detail-image-box">
+            <div class="detail-image-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>原始视频</div>
+            <video id="detailInputVideo" class="detail-video" controls><source src="" type="video/mp4"></video>
+          </div>
+          <div class="detail-image-box">
+            <div class="detail-image-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>检测结果</div>
+            <video id="detailOutputVideo" class="detail-video" controls><source src="" type="video/mp4"></video>
+          </div>
+        </div>
+        <div class="detail-info" id="detailInfo"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="downloadCurrentResult()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>下载结果</button>
+        <button type="button" class="btn btn-secondary" onclick="closeDetailModal()">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/js/common.js"></script>
+  <script>
+    if (!Utils.requireAuth()) {}
+    const sidebar = document.getElementById('sidebar'); const mainWrapper = document.getElementById('mainWrapper');
+    document.getElementById('menuToggle').addEventListener('click', () => { sidebar.classList.toggle('open'); mainWrapper.classList.toggle('sidebar-collapsed'); });
+
+    async function loadUserInfo() { try { const res = await Utils.apiGet('/api/user/me'); if (res.code === 0) { const user = res.data; document.getElementById('userName').textContent = user.name || user.username; document.getElementById('userRole').textContent = user.role === 'admin' ? '管理员' : '普通用户'; document.getElementById('userAvatar').textContent = (user.name || user.username).charAt(0); if (user.role === 'admin') document.getElementById('navUserManage').style.display = 'flex'; } } catch (error) { console.error('获取用户信息失败:', error); } }
+
+    let currentPage = 1; const pageSize = 12; let allRecords = [];
+
+    async function loadRecords() {
+      try {
+        const res = await Utils.apiGet('/api/videoRecords');
+        if (res.code === 0) { allRecords = res.data || []; document.getElementById('totalCount').textContent = allRecords.length; renderRecords(); }
+      } catch (error) { console.error('加载记录失败:', error); }
+    }
+
+    function renderRecords() {
+      const grid = document.getElementById('recordsGrid');
+      const empty = document.getElementById('emptyState');
+      if (allRecords.length === 0) { grid.innerHTML = ''; grid.appendChild(empty); empty.style.display = 'block'; document.getElementById('pagination').innerHTML = ''; return; }
+      empty.style.display = 'none';
+      const start = (currentPage - 1) * pageSize;
+      const pageRecords = allRecords.slice(start, start + pageSize);
+      grid.innerHTML = pageRecords.map(record => `
+        <div class="record-card">
+          <video class="record-video" poster="${record.out_img || ''}"><source src="${record.out_video || ''}" type="video/mp4"></video>
+          <div class="record-content">
+            <div class="record-header"><h4 class="record-title">视频检测记录</h4><span class="record-badge">已完成</span></div>
+            <div class="record-meta">
+              <div class="record-meta-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${Utils.escapeHtml(record.all_time || '-')}</div>
+              <div class="record-meta-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>${Utils.formatDate(record.start_time)}</div>
+              <div class="record-meta-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>模型: ${Utils.escapeHtml(record.weight || '-')}</div>
+            </div>
+            <div class="record-actions">
+              <button type="button" class="btn btn-secondary btn-view" data-id="${record.id}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>查看</button>
+              <button type="button" class="btn btn-secondary btn-download" data-id="${record.id}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>下载</button>
+              <button type="button" class="btn btn-danger btn-delete" data-id="${record.id}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>删除</button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+      renderPagination();
+    }
+
+    function renderPagination() {
+      const totalPages = Math.ceil(allRecords.length / pageSize);
+      const pagination = document.getElementById('pagination');
+      if (totalPages <= 1) { pagination.innerHTML = ''; return; }
+      let html = `<button class="pagination-btn" onclick="goPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>«</button>`;
+      for (let i = 1; i <= totalPages; i++) { if (i === 1 || i === totalPages || (i >= currentPage - 2 && i <= currentPage + 2)) { html += `<button class="pagination-btn ${i === currentPage ? 'active' : ''}" onclick="goPage(${i})">${i}</button>`; } else if (i === currentPage - 3 || i === currentPage + 3) { html += '<button class="pagination-btn" disabled>...</button>'; } }
+      html += `<button class="pagination-btn" onclick="goPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>»</button>`;
+      pagination.innerHTML = html;
+    }
+
+    function goPage(page) { currentPage = page; renderRecords(); }
+
+    document.getElementById('recordsGrid').addEventListener('click', (e) => {
+      const viewBtn = e.target.closest('.btn-view');
+      const downloadBtn = e.target.closest('.btn-download');
+      const deleteBtn = e.target.closest('.btn-delete');
+      if (viewBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        const id = parseInt(viewBtn.dataset.id);
+        viewDetail(id);
+      } else if (downloadBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        const id = parseInt(downloadBtn.dataset.id);
+        downloadResult(id);
+      } else if (deleteBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        const id = parseInt(deleteBtn.dataset.id);
+        deleteRecord(id);
+      }
+    });
+
+    let currentRecord = null;
+
+    function viewDetail(id) {
+      const record = allRecords.find(r => r.id === id);
+      if (!record) { Utils.showToast('错误', '未找到记录', 'error'); return false; }
+      currentRecord = record;
+      document.getElementById('detailInputVideo').src = Utils.fileUrl(record.input_video) || '';
+      document.getElementById('detailOutputVideo').src = Utils.fileUrl(record.out_video) || '';
+      const infoHtml = `
+        <div class="detail-info-item"><div class="detail-info-label">检测状态</div><div class="detail-info-value">已完成</div></div>
+        <div class="detail-info-item"><div class="detail-info-label">检测时间</div><div class="detail-info-value">${Utils.formatDate(record.start_time)}</div></div>
+        <div class="detail-info-item"><div class="detail-info-label">处理时长</div><div class="detail-info-value">${Utils.escapeHtml(record.all_time || '-')}</div></div>
+        <div class="detail-info-item"><div class="detail-info-label">使用模型</div><div class="detail-info-value">${Utils.escapeHtml(record.weight || '-')}</div></div>
+        <div class="detail-info-item"><div class="detail-info-label">用户</div><div class="detail-info-value">${Utils.escapeHtml(record.username || '-')}</div></div>
+      `;
+      document.getElementById('detailInfo').innerHTML = infoHtml;
+      document.getElementById('detailModal').classList.add('active');
+      return false;
+    }
+
+    function closeDetailModal() {
+      document.getElementById('detailModal').classList.remove('active');
+      const v1 = document.getElementById('detailInputVideo');
+      const v2 = document.getElementById('detailOutputVideo');
+      try { v1.pause(); v2.pause(); } catch (e) {}
+      currentRecord = null;
+    }
+
+    function downloadResult(id) {
+      const record = allRecords.find(r => r.id === id);
+      if (!record) { Utils.showToast('错误', '未找到记录', 'error'); return false; }
+      doDownload(record);
+      return false;
+    }
+
+    function downloadCurrentResult() {
+      if (!currentRecord) return false;
+      doDownload(currentRecord);
+      return false;
+    }
+
+    function doDownload(record) {
+      try {
+        const url = record.out_video;
+        if (!url) { Utils.showToast('错误', '视频路径无效', 'error'); return; }
+        const filename = url.split('/').pop() || 'result.mp4';
+        const downloadName = '视频检测结果.mp4';
+        const downloadUrl = `/api/download/${filename}?name=${encodeURIComponent(downloadName)}&token=${encodeURIComponent(TokenManager.getToken() || '')}`;
+        Utils.showToast('下载', '开始下载...', 'info');
+        window.location.href = downloadUrl;
+      } catch (e) {
+        console.error('下载失败:', e);
+        Utils.showToast('错误', '下载失败', 'error');
+      }
+    }
+
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDetailModal(); });
+
+    document.getElementById('detailModal').addEventListener('click', (e) => {
+      if (e.target.id === 'detailModal') closeDetailModal();
+    });
+
+    let isDeleting = false;
+
+    async function deleteRecord(id) {
+      if (isDeleting) return;
+      if (!confirm('确定要删除此记录吗？删除后将无法恢复。')) return;
+      isDeleting = true;
+      try {
+        const res = await Utils.apiDelete(`/api/videoRecords/${id}`);
+        if (res.code === 0) {
+          Utils.showToast('成功', '记录已删除', 'success');
+          await loadRecords();
+        } else {
+          Utils.showToast('错误', res.message || '删除失败', 'error');
+        }
+      } catch (error) {
+        console.error('删除失败:', error);
+      } finally {
+        isDeleting = false;
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => { loadUserInfo(); loadRecords(); });
+  </script>
+</body>
+</html>

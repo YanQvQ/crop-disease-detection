@@ -1,0 +1,35 @@
+# ===== Web 框架 =====
+Flask>=3.0.0
+Flask-SQLAlchemy>=3.1.0
+Flask-JWT-Extended>=4.6.0
+Flask-Cors>=4.0.0
+Flask-SocketIO>=5.3.0
+
+# ===== 数据库 =====
+SQLAlchemy>=2.0.0
+
+# ===== 模型推理 =====
+ultralytics>=8.0.0
+opencv-python>=4.8.0
+numpy>=1.24.0
+Pillow>=10.0.0
+
+# ===== 工具库 =====
+requests>=2.31.0
+Werkzeug>=3.0.0
+python-socketio>=5.10.0
+python-dotenv>=1.0.0
+PyYAML>=6.0
+
+# ===== 生产部署（可选，仅生产服务器需要）=====
+# eventlet：生产级 WSGI 服务器，Flask-SocketIO 官方推荐，支持并发 WebSocket 长连接。
+# 安装后 `python main.py` 自动以 eventlet 运行；Linux 高并发场景可改用 gunicorn 驱动。
+eventlet>=0.33.0
+
+# ===== 模型训练 =====
+torch>=2.0.0
+torchvision>=0.15.0
+
+# ===== 系统级依赖（非 pip 安装）=====
+# FFmpeg：视频/摄像头结果转码需要（main.py 调用系统 ffmpeg）。
+# Windows 请下载并添加至 PATH；Linux: sudo apt install ffmpeg；macOS: brew install ffmpeg。

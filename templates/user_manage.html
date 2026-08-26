@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>用户管理 - 农作物病害识别系统</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/common.css">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', 'PingFang SC', 'Microsoft YaHei', sans-serif; background: #f0fdf4; }
+    a { text-decoration: none; color: inherit; }
+    .app-container { display: flex; min-height: 100vh; }
+    .sidebar { width: 280px; background: linear-gradient(180deg, #14532d 0%, #166534 50%, #15803d 100%); position: fixed; top: 0; left: 0; bottom: 0; display: flex; flex-direction: column; z-index: 100; transition: transform 0.3s ease; }
+    .sidebar.collapsed { transform: translateX(-100%); }
+    .sidebar-header { padding: 24px 24px 20px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+    .sidebar-logo { display: flex; align-items: center; gap: 14px; }
+    .sidebar-logo-icon { width: 48px; height: 48px; background: rgba(255,255,255,0.15); border-radius: 14px; display: flex; align-items: center; justify-content: center; }
+    .sidebar-logo-icon svg { width: 28px; height: 28px; color: white; }
+    .sidebar-logo-text { color: white; }
+    .sidebar-logo-title { font-size: 1.125rem; font-weight: 700; }
+    .sidebar-logo-subtitle { font-size: 0.75rem; opacity: 0.8; margin-top: 2px; }
+    .sidebar-nav { flex: 1; padding: 16px 12px; overflow-y: auto; }
+    .nav-section { margin-bottom: 24px; }
+    .nav-section-title { font-size: 0.6875rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(255,255,255,0.5); padding: 0 12px; margin-bottom: 8px; }
+    .nav-item { display: flex; align-items: center; gap: 14px; padding: 12px 16px; border-radius: 12px; color: rgba(255,255,255,0.8); font-size: 0.9375rem; font-weight: 500; transition: all 0.2s; cursor: pointer; margin-bottom: 4px; }
+    .nav-item:hover { background: rgba(255,255,255,0.1); color: white; }
+    .nav-item.active { background: rgba(255,255,255,0.2); color: white; }
+    .nav-item svg { width: 22px; height: 22px; flex-shrink: 0; }
+    .sidebar-footer { padding: 16px 20px; border-top: 1px solid rgba(255,255,255,0.1); }
+    .user-info { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 12px; background: rgba(255,255,255,0.1); cursor: pointer; }
+    .user-avatar { width: 42px; height: 42px; border-radius: 12px; background: linear-gradient(135deg, #4ade80, #22c55e); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 1rem; }
+    .user-details { flex: 1; min-width: 0; }
+    .user-name { font-size: 0.9375rem; font-weight: 600; color: white; }
+    .user-role { font-size: 0.75rem; color: rgba(255,255,255,0.7); }
+    .main-wrapper { flex: 1; margin-left: 280px; transition: margin-left 0.3s ease; }
+    .header { height: 72px; background: white; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between; padding: 0 28px; position: sticky; top: 0; z-index: 50; }
+    .header-left { display: flex; align-items: center; gap: 20px; }
+    .menu-toggle { width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #64748b; cursor: pointer; transition: all 0.2s; }
+    .menu-toggle:hover { background: #f1f5f9; color: #1e293b; }
+    .menu-toggle svg { width: 24px; height: 24px; }
+    .header-title { font-size: 1.125rem; font-weight: 600; color: #1e293b; }
+    .header-breadcrumb { display: flex; align-items: center; gap: 8px; font-size: 0.875rem; color: #64748b; }
+    .header-right { display: flex; align-items: center; gap: 12px; }
+    .btn-add { padding: 10px 20px; font-size: 0.875rem; font-weight: 600; color: white; background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); border: none; border-radius: 10px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 14px rgba(34, 197, 94, 0.3); }
+    .btn-add:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(34, 197, 94, 0.4); }
+    .btn-add svg { width: 18px; height: 18px; }
+    .page-content { padding: 28px; }
+    .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+    .page-title { font-size: 1.5rem; font-weight: 700; color: #1e293b; margin-bottom: 4px; }
+    .page-subtitle { font-size: 0.875rem; color: #64748b; }
+    .search-box { position: relative; width: 280px; }
+    .search-box input { width: 100%; padding: 10px 16px 10px 42px; font-size: 0.875rem; border: 1px solid #e2e8f0; border-radius: 10px; background: #f8fafc; outline: none; transition: all 0.2s; }
+    .search-box input:focus { border-color: #22c55e; box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1); }
+    .search-box .search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #94a3b8; }
+    .users-table { background: white; border-radius: 16px; border: 1px solid #e2e8f0; overflow: hidden; }
+    .table { width: 100%; border-collapse: collapse; }
+    .table th, .table td { padding: 16px 20px; text-align: left; border-bottom: 1px solid #e2e8f0; }
+    .table th { background: #f8fafc; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b; }
+    .table tbody tr { transition: background 0.2s; }
+    .table tbody tr:hover { background: #f8fafc; }
+    .table tbody tr:last-child td { border-bottom: none; }
+    .user-cell { display: flex; align-items: center; gap: 12px; }
+    .user-cell-avatar { width: 40px; height: 40px; border-radius: 10px; background: linear-gradient(135deg, #22c55e, #16a34a); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 0.875rem; }
+    .user-cell-info { display: flex; flex-direction: column; }
+    .user-cell-name { font-size: 0.9375rem; font-weight: 600; color: #1e293b; }
+    .user-cell-email { font-size: 0.75rem; color: #94a3b8; }
+    .role-badge { padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; }
+    .role-badge.admin { background: rgba(34, 197, 94, 0.1); color: #16a34a; }
+    .role-badge.user, .role-badge.common { background: rgba(59, 130, 246, 0.1); color: #3b82f6; }
+    .status-badge { padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; }
+    .status-badge.active { background: rgba(34, 197, 94, 0.1); color: #16a34a; }
+    .status-badge.inactive { background: rgba(239, 68, 68, 0.1); color: #dc2626; }
+    .action-btns { display: flex; gap: 8px; }
+    .action-btn { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; border: none; background: transparent; }
+    .action-btn.edit { color: #64748b; }
+    .action-btn.edit:hover { background: rgba(59, 130, 246, 0.1); color: #3b82f6; }
+    .action-btn.delete { color: #64748b; }
+    .action-btn.delete:hover { background: rgba(239, 68, 68, 0.1); color: #dc2626; }
+    .action-btn svg { width: 16px; height: 16px; }
+    .pagination { display: flex; justify-content: center; gap: 8px; margin-top: 24px; }
+    .pagination-btn { min-width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 10px; font-size: 0.875rem; font-weight: 500; color: #64748b; background: white; border: 1px solid #e2e8f0; cursor: pointer; transition: all 0.2s; }
+    .pagination-btn:hover:not(.active):not(:disabled) { border-color: #22c55e; color: #22c55e; }
+    .pagination-btn.active { background: #22c55e; color: white; border-color: #22c55e; }
+    .pagination-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 200; opacity: 0; visibility: hidden; transition: all 0.3s; }
+    .modal-overlay.active { opacity: 1; visibility: visible; }
+    .modal { background: white; border-radius: 20px; box-shadow: 0 25px 50px rgba(0,0,0,0.25); width: 90%; max-width: 480px; transform: scale(0.95); transition: transform 0.3s; }
+    .modal-overlay.active .modal { transform: scale(1); }
+    .modal-header { padding: 20px 24px; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between; }
+    .modal-title { font-size: 1.125rem; font-weight: 700; color: #1e293b; }
+    .modal-close { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #64748b; cursor: pointer; transition: all 0.2s; }
+    .modal-close:hover { background: #f1f5f9; color: #1e293b; }
+    .modal-body { padding: 24px; }
+    .modal-footer { padding: 16px 24px; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 12px; background: #f8fafc; border-radius: 0 0 20px 20px; }
+    .form-group { margin-bottom: 20px; }
+    .form-label { display: block; font-size: 0.875rem; font-weight: 600; color: #1e293b; margin-bottom: 8px; }
+    .form-input { width: 100%; padding: 12px 16px; font-size: 0.9375rem; color: #1e293b; background: #f8fafc; border: 2px solid transparent; border-radius: 10px; transition: all 0.2s; outline: none; }
+    .form-input:focus { background: white; border-color: #22c55e; box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1); }
+    .form-select { width: 100%; padding: 12px 16px; font-size: 0.9375rem; color: #1e293b; background: #f8fafc; border: 2px solid transparent; border-radius: 10px; transition: all 0.2s; outline: none; cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; }
+    .form-select:focus { background-color: white; border-color: #22c55e; }
+    .required { color: #ef4444; margin-left: 2px; }
+    .optional { color: #94a3b8; font-size: 0.75rem; font-weight: 400; margin-left: 4px; }
+    @media (max-width: 900px) { .sidebar { transform: translateX(-100%); } .sidebar.open { transform: translateX(0); } .main-wrapper { margin-left: 0; } }
+    @media (max-width: 640px) { .page-content { padding: 16px; } .header { padding: 0 16px; } .search-box { width: 100%; } .table { display: block; overflow-x: auto; } }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header"><div class="sidebar-logo"><div class="sidebar-logo-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></div><div class="sidebar-logo-text"><div class="sidebar-logo-title">CropDisease</div><div class="sidebar-logo-subtitle">农作物病害识别系统</div></div></div></div>
+      <nav class="sidebar-nav">
+        <div class="nav-section"><div class="nav-section-title">主菜单</div><a href="/dashboard" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg><span>仪表盘</span></a></div>
+        <div class="nav-section"><div class="nav-section-title">智能检测</div><a href="/img-predict" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><span>图片预测</span></a><a href="/video-predict" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg><span>视频预测</span></a><a href="/camera-predict" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg><span>摄像头预测</span></a></div>
+        <div class="nav-section"><div class="nav-section-title">历史记录</div><a href="/img-records" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span>图片记录</span></a><a href="/video-records" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg><span>视频记录</span></a><a href="/camera-records" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg><span>摄像头记录</span></a></div>
+        <div class="nav-section"><div class="nav-section-title">系统管理</div><a href="/user-manage" class="nav-item active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>用户管理</span></a><a href="/settings" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span>系统设置</span></a><a href="/personal" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>个人中心</span></a></div>
+      </nav>
+      <div class="sidebar-footer"><div class="user-info" onclick="Utils.logout()"><div class="user-avatar" id="userAvatar">管</div><div class="user-details"><div class="user-name" id="userName">管理员</div><div class="user-role" id="userRole">管理员</div></div></div></div>
+    </aside>
+
+    <div class="main-wrapper" id="mainWrapper">
+      <header class="header">
+        <div class="header-left">
+          <div class="menu-toggle" id="menuToggle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg></div>
+          <div><h1 class="header-title">用户管理</h1><div class="header-breadcrumb"><span>首页</span> / <span>系统管理</span> / <span>用户管理</span></div></div>
+        </div>
+        <div class="header-right">
+          <button class="btn-add" onclick="openAddModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>添加用户</button>
+        </div>
+      </header>
+
+      <main class="page-content">
+        <div class="page-header">
+          <div><h2 class="page-title">用户列表</h2><p class="page-subtitle">共 <span id="totalCount">0</span> 个用户</p></div>
+          <div class="search-box">
+            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" id="searchInput" placeholder="搜索用户..." autocomplete="off" spellcheck="false" value="">
+          </div>
+        </div>
+
+        <div class="users-table">
+          <table class="table">
+            <thead><tr><th>用户</th><th>性别</th><th>邮箱</th><th>电话</th><th>角色</th><th>注册时间</th><th>操作</th></tr></thead>
+            <tbody id="usersTableBody"></tbody>
+          </table>
+        </div>
+        <div class="pagination" id="pagination"></div>
+      </main>
+    </div>
+  </div>
+
+  <!-- 添加/编辑用户模态框 -->
+  <div class="modal-overlay" id="userModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modalTitle">添加用户</h3>
+        <div class="modal-close" onclick="closeModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="editUserId">
+        <div class="form-group"><label class="form-label">用户名<span class="required">*</span></label><input type="text" class="form-input" id="modalUsername" placeholder="请输入用户名"></div>
+        <div class="form-group"><label class="form-label">姓名<span class="required">*</span></label><input type="text" class="form-input" id="modalName" placeholder="请输入姓名"></div>
+        <div class="form-group"><label class="form-label">性别<span class="optional">（选填）</span></label><select class="form-select" id="modalSex"><option value="男">男</option><option value="女">女</option></select></div>
+        <div class="form-group"><label class="form-label">邮箱<span class="optional">（选填）</span></label><input type="email" class="form-input" id="modalEmail" placeholder="请输入邮箱"></div>
+        <div class="form-group"><label class="form-label">电话<span class="optional">（选填）</span></label><input type="text" class="form-input" id="modalTel" placeholder="请输入电话号码"></div>
+        <div class="form-group"><label class="form-label">角色<span class="required">*</span></label><select class="form-select" id="modalRole"><option value="user">普通用户</option><option value="admin">管理员</option></select></div>
+        <div class="form-group"><label class="form-label">密码<span class="required">*</span></label><input type="password" class="form-input" id="modalPassword" placeholder="请输入密码（留空则不修改）"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+        <button class="btn btn-primary" onclick="saveUser()">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/js/common.js"></script>
+  <script>
+    if (!Utils.requireAdmin()) {}
+
+    const sidebar = document.getElementById('sidebar'); const mainWrapper = document.getElementById('mainWrapper');
+    document.getElementById('menuToggle').addEventListener('click', () => { sidebar.classList.toggle('open'); mainWrapper.classList.toggle('sidebar-collapsed'); });
+
+    async function loadUserInfo() { try { const res = await Utils.apiGet('/api/user/me'); if (res.code === 0) { const user = res.data; document.getElementById('userName').textContent = user.name || user.username; document.getElementById('userRole').textContent = user.role === 'admin' ? '管理员' : '普通用户'; document.getElementById('userAvatar').textContent = (user.name || user.username).charAt(0); } } catch (error) { console.error('获取用户信息失败:', error); } }
+
+    let currentPage = 1; const pageSize = 10; let allUsers = []; let filteredUsers = [];
+
+    async function loadUsers() {
+      try {
+        const res = await Utils.apiGet('/api/user');
+        if (res.code === 0) { allUsers = res.data || []; applySearch(); }
+      } catch (error) { console.error('加载用户失败:', error); }
+    }
+
+    function applySearch() {
+      const keyword = document.getElementById('searchInput').value.trim().toLowerCase();
+      if (!keyword) {
+        filteredUsers = [...allUsers];
+      } else {
+        filteredUsers = allUsers.filter(u =>
+          (u.username && u.username.toLowerCase().includes(keyword)) ||
+          (u.name && u.name.toLowerCase().includes(keyword)) ||
+          (u.email && u.email.toLowerCase().includes(keyword)) ||
+          (u.tel && u.tel.includes(keyword)) ||
+          (u.sex && u.sex.includes(keyword))
+        );
+      }
+      currentPage = 1;
+      document.getElementById('totalCount').textContent = filteredUsers.length;
+      renderUsers();
+    }
+
+    function renderUsers() {
+      const tbody = document.getElementById('usersTableBody');
+      const start = (currentPage - 1) * pageSize;
+      const pageUsers = filteredUsers.slice(start, start + pageSize);
+      if (pageUsers.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:#94a3b8;">暂无用户</td></tr>';
+        document.getElementById('pagination').innerHTML = '';
+        return;
+      }
+      tbody.innerHTML = pageUsers.map(user => `
+        <tr>
+          <td><div class="user-cell"><div class="user-cell-avatar">${Utils.escapeHtml((user.name || user.username).charAt(0).toUpperCase())}</div><div class="user-cell-info"><div class="user-cell-name">${Utils.escapeHtml(user.name || user.username)}</div><div class="user-cell-email">${Utils.escapeHtml(user.username)}</div></div></div></td>
+          <td>${Utils.escapeHtml(user.sex || '-')}</td>
+          <td>${Utils.escapeHtml(user.email || '-')}</td>
+          <td>${Utils.escapeHtml(user.tel || '-')}</td>
+          <td><span class="role-badge ${Utils.escapeHtml(user.role)}">${Utils.escapeHtml(user.role === 'admin' ? '管理员' : '普通用户')}</span></td>
+          <td>${Utils.escapeHtml(Utils.formatDate(user.create_time))}</td>
+          <td><div class="action-btns">
+            <button class="action-btn edit" onclick="editUser('${user.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+            <button class="action-btn delete" onclick="deleteUser('${user.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+          </div></td>
+        </tr>
+      `).join('');
+      renderPagination();
+    }
+
+    function renderPagination() {
+      const totalPages = Math.ceil(filteredUsers.length / pageSize);
+      const pagination = document.getElementById('pagination');
+      if (totalPages <= 1) { pagination.innerHTML = ''; return; }
+      let html = `<button class="pagination-btn" onclick="goPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>«</button>`;
+      for (let i = 1; i <= totalPages; i++) { if (i === 1 || i === totalPages || (i >= currentPage - 2 && i <= currentPage + 2)) { html += `<button class="pagination-btn ${i === currentPage ? 'active' : ''}" onclick="goPage(${i})">${i}</button>`; } else if (i === currentPage - 3 || i === currentPage + 3) { html += '<button class="pagination-btn" disabled>...</button>'; } }
+      html += `<button class="pagination-btn" onclick="goPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>»</button>`;
+      pagination.innerHTML = html;
+    }
+
+    function goPage(page) { currentPage = page; renderUsers(); }
+
+    function openAddModal() { document.getElementById('modalTitle').textContent = '添加用户'; document.getElementById('editUserId').value = ''; document.getElementById('modalUsername').value = ''; document.getElementById('modalName').value = ''; document.getElementById('modalSex').value = '男'; document.getElementById('modalEmail').value = ''; document.getElementById('modalTel').value = ''; document.getElementById('modalRole').value = 'user'; document.getElementById('modalPassword').value = ''; document.getElementById('userModal').classList.add('active'); }
+    function closeModal() { document.getElementById('userModal').classList.remove('active'); }
+    function editUser(id) { const user = allUsers.find(u => String(u.id) === String(id)); if (user) { document.getElementById('modalTitle').textContent = '编辑用户'; document.getElementById('editUserId').value = user.id; document.getElementById('modalUsername').value = user.username; document.getElementById('modalName').value = user.name || ''; document.getElementById('modalSex').value = user.sex || '男'; document.getElementById('modalEmail').value = user.email || ''; document.getElementById('modalTel').value = user.tel || ''; document.getElementById('modalRole').value = user.role === 'admin' ? 'admin' : 'user'; document.getElementById('modalPassword').value = ''; document.getElementById('userModal').classList.add('active'); } }
+    async function saveUser() { const id = document.getElementById('editUserId').value; const username = document.getElementById('modalUsername').value.trim(); const name = document.getElementById('modalName').value.trim(); const sex = document.getElementById('modalSex').value; const email = document.getElementById('modalEmail').value.trim(); const tel = document.getElementById('modalTel').value.trim(); const role = document.getElementById('modalRole').value; const password = document.getElementById('modalPassword').value; if (!username) { Utils.showToast('错误', '请输入用户名', 'error'); return; } try { let res; if (id) { res = await Utils.apiPost('/api/user/update', { username, name, sex, email, tel, role, ...(password && { password }) }); } else { res = await Utils.apiPost('/api/user', { username, name, sex, email, tel, role, password }); } if (res.code === 0) { Utils.showToast('成功', id ? '用户已更新' : '用户已创建', 'success'); closeModal(); loadUsers(); } else { Utils.showToast('错误', res.message, 'error'); } } catch (error) { Utils.showToast('错误', '保存失败', 'error'); } }
+    async function deleteUser(id) { if (!confirm('确定要删除此用户吗？')) return; try { const res = await Utils.apiDelete('/api/user/' + id); if (res.code === 0) { Utils.showToast('成功', '用户已删除', 'success'); loadUsers(); } else { Utils.showToast('错误', res.message, 'error'); } } catch (error) { Utils.showToast('错误', '删除失败', 'error'); } }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const searchInput = document.getElementById('searchInput');
+      searchInput.value = '';
+      searchInput.setAttribute('autocomplete', 'new-password');
+      loadUserInfo();
+      loadUsers();
+      searchInput.addEventListener('input', applySearch);
+    });
+  </script>
+</body>
+</html>

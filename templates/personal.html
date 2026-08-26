@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>个人中心 - 农作物病害识别系统</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/common.css">
+  <link rel="stylesheet" href="/static/css/sidebar.css">
+  <style>
+    :root {
+      --sidebar-bg: linear-gradient(180deg, #14532d 0%, #166534 50%, #15803d 100%);
+      --sidebar-width: 280px;
+      --header-height: 72px;
+      --card-radius: 20px;
+      --accent-color: #8b5cf6;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', 'PingFang SC', 'Microsoft YaHei', sans-serif; background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 50%, #f0fdf4 100%); min-height: 100vh; }
+    a { text-decoration: none; color: inherit; }
+
+    .app-container { display: flex; min-height: 100vh; }
+
+    .main-wrapper { flex: 1; margin-left: var(--sidebar-width); transition: margin-left 0.3s ease; }
+    .main-wrapper.sidebar-collapsed { margin-left: 0; }
+
+    .header {
+      height: var(--header-height);
+      background: white;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 28px;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+    .header-left { display: flex; align-items: center; gap: 20px; }
+    .menu-toggle {
+      width: 42px; height: 42px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      color: #64748b; cursor: pointer; transition: all 0.2s;
+    }
+    .menu-toggle:hover { background: #f1f5f9; color: #1e293b; }
+    .menu-toggle svg { width: 24px; height: 24px; }
+    .header-title { font-size: 1.125rem; font-weight: 600; color: #1e293b; }
+    .header-breadcrumb { display: flex; align-items: center; gap: 8px; font-size: 0.875rem; color: #64748b; margin-top: 2px; }
+    .header-breadcrumb span { color: #94a3b8; }
+
+    .page-content { padding: 28px; max-width: 1000px; margin: 0 auto; }
+    .page-header { margin-bottom: 28px; }
+    .page-title { font-size: 1.75rem; font-weight: 700; color: #1e293b; letter-spacing: -0.025em; margin-bottom: 8px; }
+    .page-subtitle { font-size: 0.9375rem; color: #64748b; }
+
+    .profile-grid { display: grid; grid-template-columns: 320px 1fr; gap: 24px; }
+    
+    .profile-card {
+      background: white;
+      border-radius: var(--card-radius);
+      padding: 32px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+      border: 1px solid #e2e8f0;
+      text-align: center;
+    }
+    .profile-avatar-wrap {
+      position: relative;
+      display: inline-block;
+      margin-bottom: 20px;
+    }
+    .profile-avatar {
+      width: 120px;
+      height: 120px;
+      border-radius: 24px;
+      background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 700;
+      font-size: 3rem;
+      box-shadow: 0 8px 24px rgba(34, 197, 94, 0.3);
+    }
+    .avatar-badge {
+      position: absolute;
+      bottom: -4px;
+      right: -4px;
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 1rem;
+      box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+    }
+    .profile-name { font-size: 1.5rem; font-weight: 700; color: #1e293b; margin-bottom: 4px; }
+    .profile-role { display: inline-flex; align-items: center; gap: 6px; padding: 6px 16px; border-radius: 20px; font-size: 0.875rem; font-weight: 600; margin-top: 8px; }
+    .profile-role.admin { background: rgba(34, 197, 94, 0.1); color: #16a34a; }
+    .profile-role.user { background: rgba(59, 130, 246, 0.1); color: #3b82f6; }
+    .profile-stats { display: flex; justify-content: center; gap: 32px; margin-top: 28px; padding-top: 28px; border-top: 1px solid #e2e8f0; }
+    .profile-stat { text-align: center; }
+    .profile-stat-value { font-size: 1.5rem; font-weight: 700; color: #1e293b; }
+    .profile-stat-label { font-size: 0.75rem; color: #94a3b8; margin-top: 4px; }
+
+    .settings-card {
+      background: white;
+      border-radius: var(--card-radius);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+      border: 1px solid #e2e8f0;
+      overflow: hidden;
+    }
+    .settings-section { padding: 28px; border-bottom: 1px solid #e2e8f0; }
+    .settings-section:last-child { border-bottom: none; }
+    .settings-section-title { font-size: 1rem; font-weight: 700; color: #1e293b; margin-bottom: 6px; display: flex; align-items: center; gap: 10px; }
+    .settings-section-title svg { width: 20px; height: 20px; color: #22c55e; }
+    .settings-section-desc { font-size: 0.875rem; color: #94a3b8; margin-bottom: 20px; }
+    
+    .form-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+    .form-group { margin-bottom: 20px; }
+    .form-group.full { grid-column: span 2; }
+    .form-label { display: block; font-size: 0.875rem; font-weight: 600; color: #1e293b; margin-bottom: 8px; }
+    .form-label .required { color: #ef4444; margin-left: 2px; }
+    .form-label .optional { color: #94a3b8; font-size: 0.75rem; font-weight: 400; margin-left: 4px; }
+    .form-input {
+      width: 100%; padding: 14px 18px; font-size: 0.9375rem; color: #1e293b;
+      background: #f8fafc; border: 2px solid transparent; border-radius: 12px;
+      transition: all 0.2s; outline: none;
+    }
+    .form-input:focus { background: white; border-color: #22c55e; box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.1); }
+    .form-input:disabled { background: #f1f5f9; color: #94a3b8; cursor: not-allowed; }
+    .form-hint { font-size: 0.75rem; color: #94a3b8; margin-top: 6px; }
+    
+    .btn {
+      padding: 14px 28px; font-size: 0.9375rem; font-weight: 600; border: none;
+      border-radius: 12px; cursor: pointer; transition: all 0.2s; display: inline-flex;
+      align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn-primary { background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); color: white; box-shadow: 0 4px 14px rgba(34, 197, 94, 0.3); }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(34, 197, 94, 0.4); }
+    .btn-secondary { background: #f1f5f9; color: #64748b; }
+    .btn-secondary:hover { background: #e2e8f0; color: #1e293b; }
+    .btn-danger { background: rgba(239, 68, 68, 0.1); color: #dc2626; }
+    .btn-danger:hover { background: rgba(239, 68, 68, 0.2); }
+    .btn svg { width: 18px; height: 18px; }
+    
+    .password-strength { display: flex; gap: 4px; margin-top: 10px; }
+    .strength-bar { height: 4px; flex: 1; border-radius: 2px; background: #e2e8f0; transition: background 0.2s; }
+    .strength-bar.active.weak { background: #ef4444; }
+    .strength-bar.active.medium { background: #f59e0b; }
+    .strength-bar.active.strong { background: #22c55e; }
+    .strength-label { font-size: 0.75rem; margin-top: 6px; }
+    .strength-label.weak { color: #ef4444; }
+    .strength-label.medium { color: #f59e0b; }
+    .strength-label.strong { color: #22c55e; }
+
+    .security-item { display: flex; align-items: center; justify-content: space-between; padding: 16px 0; border-bottom: 1px solid #f1f5f9; }
+    .security-item:last-child { border-bottom: none; padding-bottom: 0; }
+    .security-info { display: flex; align-items: center; gap: 14px; }
+    .security-icon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+    .security-icon.green { background: rgba(34, 197, 94, 0.1); color: #22c55e; }
+    .security-icon.yellow { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
+    .security-icon svg { width: 22px; height: 22px; }
+    .security-text h4 { font-size: 0.9375rem; font-weight: 600; color: #1e293b; }
+    .security-text p { font-size: 0.8125rem; color: #94a3b8; margin-top: 2px; }
+    .security-status { display: flex; align-items: center; gap: 8px; }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .status-dot.active { background: #22c55e; }
+    .status-dot.inactive { background: #94a3b8; }
+    .status-text { font-size: 0.8125rem; color: #64748b; }
+
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 200; opacity: 0; visibility: hidden; transition: all 0.3s; }
+    .modal-overlay.active { opacity: 1; visibility: visible; }
+    .modal { background: white; border-radius: 24px; box-shadow: 0 25px 50px rgba(0,0,0,0.25); width: 90%; max-width: 440px; transform: scale(0.95); transition: transform 0.3s; }
+    .modal-overlay.active .modal { transform: scale(1); }
+    .modal-header { padding: 24px 28px; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between; }
+    .modal-title { font-size: 1.125rem; font-weight: 700; color: #1e293b; }
+    .modal-close { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #64748b; cursor: pointer; transition: all 0.2s; }
+    .modal-close:hover { background: #f1f5f9; color: #1e293b; }
+    .modal-body { padding: 28px; }
+    .modal-footer { padding: 20px 28px; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 12px; background: #f8fafc; border-radius: 0 0 24px 24px; }
+
+    .toast { position: fixed; top: 24px; right: 24px; padding: 16px 24px; border-radius: 12px; font-size: 0.9375rem; font-weight: 500; z-index: 300; display: flex; align-items: center; gap: 12px; transform: translateX(120%); transition: transform 0.3s ease; box-shadow: 0 10px 40px rgba(0,0,0,0.15); }
+    .toast.show { transform: translateX(0); }
+    .toast.success { background: #22c55e; color: white; }
+    .toast.error { background: #ef4444; color: white; }
+    .toast.info { background: #3b82f6; color: white; }
+    .toast svg { width: 20px; height: 20px; }
+
+    @media (max-width: 900px) {
+      .sidebar { transform: translateX(-100%); }
+      .sidebar.open { transform: translateX(0); }
+      .main-wrapper { margin-left: 0; }
+      .profile-grid { grid-template-columns: 1fr; }
+      .form-row { grid-template-columns: 1fr; }
+      .form-group.full { grid-column: span 1; }
+    }
+    @media (max-width: 640px) {
+      .page-content { padding: 20px; }
+      .header { padding: 0 16px; }
+      .profile-stats { gap: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">
+          <div class="sidebar-logo-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+              <path d="M2 17l10 5 10-5"/>
+              <path d="M2 12l10 5 10-5"/>
+            </svg>
+          </div>
+          <div class="sidebar-logo-text">
+            <div class="sidebar-logo-title">CropDisease</div>
+            <div class="sidebar-logo-subtitle">农作物病害识别系统</div>
+          </div>
+        </div>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section">
+          <div class="nav-section-title">主菜单</div>
+          <a href="/dashboard" class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+              <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+            </svg>
+            <span>仪表盘</span>
+          </a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-title">智能检测</div>
+          <a href="/img-predict" class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+              <circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+            </svg>
+            <span>图片预测</span>
+          </a>
+          <a href="/video-predict" class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+            </svg>
+            <span>视频预测</span>
+          </a>
+          <a href="/camera-predict" class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+              <circle cx="12" cy="13" r="4"/>
+            </svg>
+            <span>摄像头预测</span>
+          </a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-title">历史记录</div>
+          <a href="/img-records" class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+            </svg>
+            <span>图片记录</span>
+          </a>
+          <a href="/video-records" class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+            </svg>
+            <span>视频记录</span>
+          </a>
+          <a href="/camera-records" class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+              <circle cx="12" cy="13" r="4"/>
+            </svg>
+            <span>摄像头记录</span>
+          </a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-title">系统管理</div>
+          <a href="/user-manage" class="nav-item" id="navUserManage" style="display: none;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+            <span>用户管理</span>
+          </a>
+          <a href="/settings" class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+            <span>系统设置</span>
+          </a>
+          <a href="/personal" class="nav-item active">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg>
+            <span>个人中心</span>
+          </a>
+        </div>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-info" onclick="Utils.logout()">
+          <div class="user-avatar" id="userAvatar">管</div>
+          <div class="user-details">
+            <div class="user-name" id="userName">管理员</div>
+            <div class="user-role" id="userRole">管理员</div>
+          </div>
+          <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="2" width="18" height="18">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+            <polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
+        </div>
+      </div>
+    </aside>
+
+    <div class="main-wrapper" id="mainWrapper">
+      <header class="header">
+        <div class="header-left">
+          <div class="menu-toggle" id="menuToggle">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/>
+            </svg>
+          </div>
+          <div>
+            <h1 class="header-title">个人中心</h1>
+            <div class="header-breadcrumb">
+              <span>首页</span> / <span>系统管理</span> / <span>个人中心</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main class="page-content">
+        <div class="page-header">
+          <h2 class="page-title">个人信息</h2>
+          <p class="page-subtitle">管理您的账户信息和安全设置</p>
+        </div>
+
+        <div class="profile-grid">
+          <!-- 左侧头像卡片 -->
+          <div class="profile-card">
+            <div class="profile-avatar-wrap">
+              <div class="profile-avatar" id="profileAvatar">管</div>
+              <div class="avatar-badge">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                </svg>
+              </div>
+            </div>
+            <h3 class="profile-name" id="profileName">管理员</h3>
+            <span class="profile-role admin" id="profileRole">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              </svg>
+              管理员
+            </span>
+            <div class="profile-stats">
+              <div class="profile-stat">
+                <div class="profile-stat-value" id="statImgCount">0</div>
+                <div class="profile-stat-label">图片检测</div>
+              </div>
+              <div class="profile-stat">
+                <div class="profile-stat-value" id="statVideoCount">0</div>
+                <div class="profile-stat-label">视频检测</div>
+              </div>
+              <div class="profile-stat">
+                <div class="profile-stat-value" id="statCameraCount">0</div>
+                <div class="profile-stat-label">摄像头检测</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 右侧设置表单 -->
+          <div class="settings-card">
+            <!-- 基本信息 -->
+            <div class="settings-section">
+              <h3 class="settings-section-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                  <circle cx="12" cy="7" r="4"/>
+                </svg>
+                基本信息
+              </h3>
+              <p class="settings-section-desc">更新您的个人资料信息</p>
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">用户名</label>
+                  <input type="text" class="form-input" id="inputUsername" disabled>
+                  <p class="form-hint">用户名不可修改</p>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">姓名<span class="required">*</span></label>
+                  <input type="text" class="form-input" id="inputName" placeholder="请输入姓名">
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">性别<span class="optional">（选填）</span></label>
+                  <select class="form-input" id="inputSex">
+                    <option value="">请选择</option>
+                    <option value="男">男</option>
+                    <option value="女">女</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">邮箱<span class="optional">（选填）</span></label>
+                  <input type="email" class="form-input" id="inputEmail" placeholder="请输入邮箱">
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">电话<span class="optional">（选填）</span></label>
+                  <input type="text" class="form-input" id="inputTel" placeholder="请输入电话号码">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">角色</label>
+                  <input type="text" class="form-input" id="inputRole" disabled>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">注册时间</label>
+                  <input type="text" class="form-input" id="inputCreateTime" disabled>
+                </div>
+              </div>
+              <button class="btn btn-primary" onclick="saveProfile()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                  <polyline points="17 21 17 13 7 13 7 21"/>
+                  <polyline points="7 3 7 8 15 8"/>
+                </svg>
+                保存修改
+              </button>
+            </div>
+
+            <!-- 修改密码 -->
+            <div class="settings-section">
+              <h3 class="settings-section-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                </svg>
+                修改密码
+              </h3>
+              <p class="settings-section-desc">定期更换密码可以保护您的账户安全</p>
+              <div class="form-group">
+                <label class="form-label">当前密码</label>
+                <input type="password" class="form-input" id="currentPassword" placeholder="请输入当前密码">
+              </div>
+              <div class="form-group">
+                <label class="form-label">新密码</label>
+                <input type="password" class="form-input" id="newPassword" placeholder="请输入新密码" oninput="checkPasswordStrength()">
+                <div class="password-strength" id="passwordStrength">
+                  <div class="strength-bar" id="strength1"></div>
+                  <div class="strength-bar" id="strength2"></div>
+                  <div class="strength-bar" id="strength3"></div>
+                  <div class="strength-bar" id="strength4"></div>
+                </div>
+                <p class="strength-label" id="strengthLabel"></p>
+                <p class="form-hint">密码长度至少8位，包含大小写字母和数字</p>
+              </div>
+              <div class="form-group">
+                <label class="form-label">确认新密码</label>
+                <input type="password" class="form-input" id="confirmPassword" placeholder="请再次输入新密码">
+              </div>
+              <button class="btn btn-primary" onclick="changePassword()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                </svg>
+                修改密码
+              </button>
+            </div>
+
+            <!-- 安全设置 -->
+            <div class="settings-section">
+              <h3 class="settings-section-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
+                账户安全
+              </h3>
+              <p class="settings-section-desc">查看您的账户安全状态</p>
+              <div class="security-item">
+                <div class="security-info">
+                  <div class="security-icon green">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                      <polyline points="22 4 12 14.01 9 11.01"/>
+                    </svg>
+                  </div>
+                  <div class="security-text">
+                    <h4>密码强度</h4>
+                    <p id="securityPasswordStatus">中等 - 建议使用更强密码</p>
+                  </div>
+                </div>
+                <div class="security-status">
+                  <span class="status-dot active"></span>
+                  <span class="status-text">已设置</span>
+                </div>
+              </div>
+              <div class="security-item">
+                <div class="security-info">
+                  <div class="security-icon green">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                      <circle cx="12" cy="7" r="4"/>
+                    </svg>
+                  </div>
+                  <div class="security-text">
+                    <h4>个人信息</h4>
+                    <p id="securityProfileStatus">基本信息已完善</p>
+                  </div>
+                </div>
+                <div class="security-status">
+                  <span class="status-dot active"></span>
+                  <span class="status-text">完整</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="toastIcon"></svg>
+    <span id="toastMessage"></span>
+  </div>
+
+  <script src="/static/js/common.js"></script>
+  <script>
+    if (!Utils.requireAuth()) {}
+
+    const sidebar = document.getElementById('sidebar');
+    const mainWrapper = document.getElementById('mainWrapper');
+    document.getElementById('menuToggle').addEventListener('click', () => {
+      sidebar.classList.toggle('open');
+      mainWrapper.classList.toggle('sidebar-collapsed');
+    });
+
+    let currentUser = null;
+
+    async function loadUserInfo() {
+      try {
+        const res = await Utils.apiGet('/api/user/me');
+        if (res.code === 0) {
+          currentUser = res.data;
+          renderUserInfo(currentUser);
+          if (currentUser.role === 'admin') {
+            document.getElementById('navUserManage').style.display = 'flex';
+          }
+        }
+      } catch (error) {
+        console.error('获取用户信息失败:', error);
+        showToast('获取用户信息失败', 'error');
+      }
+    }
+
+    function renderUserInfo(user) {
+      const name = user.name || user.username;
+      document.getElementById('userName').textContent = name;
+      document.getElementById('userRole').textContent = user.role === 'admin' ? '管理员' : '普通用户';
+      document.getElementById('userAvatar').textContent = name.charAt(0);
+      document.getElementById('profileName').textContent = name;
+      document.getElementById('profileAvatar').textContent = name.charAt(0);
+      document.getElementById('inputUsername').value = user.username;
+      document.getElementById('inputName').value = user.name || '';
+      document.getElementById('inputSex').value = user.sex || '';
+      document.getElementById('inputEmail').value = user.email || '';
+      document.getElementById('inputTel').value = user.tel || '';
+      document.getElementById('inputRole').value = user.role === 'admin' ? '管理员' : '普通用户';
+      document.getElementById('inputCreateTime').value = Utils.formatDate(user.create_time);
+      
+      const roleEl = document.getElementById('profileRole');
+      roleEl.className = 'profile-role ' + user.role;
+      roleEl.innerHTML = user.role === 'admin' 
+        ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>管理员'
+        : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>普通用户';
+    }
+
+    async function loadUserStats() {
+      try {
+        const res = await Utils.apiGet('/api/stats');
+        if (res.code === 0) {
+          document.getElementById('statImgCount').textContent = res.data.img_count || 0;
+          document.getElementById('statVideoCount').textContent = res.data.video_count || 0;
+          document.getElementById('statCameraCount').textContent = res.data.camera_count || 0;
+        }
+      } catch (error) {
+        console.error('获取统计失败:', error);
+      }
+    }
+
+    async function saveProfile() {
+      const name = document.getElementById('inputName').value.trim();
+      const sex = document.getElementById('inputSex').value;
+      const email = document.getElementById('inputEmail').value.trim();
+      const tel = document.getElementById('inputTel').value.trim();
+      if (!name) {
+        showToast('请输入姓名', 'error');
+        return;
+      }
+      if (email && !/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email)) {
+        showToast('邮箱格式不正确', 'error');
+        return;
+      }
+      if (tel && !/^1[3-9]\d{9}$/.test(tel)) {
+        showToast('手机号格式不正确', 'error');
+        return;
+      }
+      try {
+        const username = Utils.TokenManager.getUsername();
+        const res = await Utils.apiPost('/api/user/update', { username, name, sex, email, tel });
+        if (res.code === 0) {
+          showToast('个人信息已更新', 'success');
+          loadUserInfo();
+        } else {
+          showToast(res.message || '保存失败', 'error');
+        }
+      } catch (error) {
+        showToast('保存失败', 'error');
+      }
+    }
+
+    function checkPasswordStrength() {
+      const password = document.getElementById('newPassword').value;
+      const bars = [
+        document.getElementById('strength1'),
+        document.getElementById('strength2'),
+        document.getElementById('strength3'),
+        document.getElementById('strength4')
+      ];
+      const label = document.getElementById('strengthLabel');
+      
+      let strength = 0;
+      if (password.length >= 8) strength++;
+      if (/[a-z]/.test(password) && /[A-Z]/.test(password)) strength++;
+      if (/\d/.test(password)) strength++;
+      if (/[!@#$%^&*(),.?":{}|<>]/.test(password)) strength++;
+
+      bars.forEach((bar, i) => {
+        bar.classList.remove('active', 'weak', 'medium', 'strong');
+        if (i < strength) {
+          bar.classList.add('active');
+          if (strength <= 1) bar.classList.add('weak');
+          else if (strength <= 2) bar.classList.add('medium');
+          else bar.classList.add('strong');
+        }
+      });
+
+      if (strength <= 1) {
+        label.textContent = '密码强度：弱';
+        label.className = 'strength-label weak';
+      } else if (strength <= 2) {
+        label.textContent = '密码强度：中等';
+        label.className = 'strength-label medium';
+      } else {
+        label.textContent = '密码强度：强';
+        label.className = 'strength-label strong';
+      }
+    }
+
+    async function changePassword() {
+      const currentPassword = document.getElementById('currentPassword').value;
+      const newPassword = document.getElementById('newPassword').value;
+      const confirmPassword = document.getElementById('confirmPassword').value;
+
+      if (!currentPassword) {
+        showToast('请输入当前密码', 'error');
+        return;
+      }
+      if (!newPassword) {
+        showToast('请输入新密码', 'error');
+        return;
+      }
+      if (newPassword.length < 8) {
+        showToast('密码长度至少8位', 'error');
+        return;
+      }
+      if (newPassword !== confirmPassword) {
+        showToast('两次输入的密码不一致', 'error');
+        return;
+      }
+
+      try {
+        const res = await Utils.apiPost('/api/user/change-password', {
+          current_password: currentPassword,
+          new_password: newPassword
+        });
+        if (res.code === 0) {
+          showToast('密码修改成功', 'success');
+          document.getElementById('currentPassword').value = '';
+          document.getElementById('newPassword').value = '';
+          document.getElementById('confirmPassword').value = '';
+          document.getElementById('strengthLabel').textContent = '';
+          document.querySelectorAll('.strength-bar').forEach(bar => bar.classList.remove('active'));
+        } else {
+          showToast(res.message || '修改失败', 'error');
+        }
+      } catch (error) {
+        showToast('修改失败', 'error');
+      }
+    }
+
+    function showToast(message, type) {
+      const toast = document.getElementById('toast');
+      const toastMessage = document.getElementById('toastMessage');
+      const toastIcon = document.getElementById('toastIcon');
+      
+      toast.className = 'toast ' + type;
+      toastMessage.textContent = message;
+      
+      if (type === 'success') {
+        toastIcon.innerHTML = '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>';
+      } else if (type === 'error') {
+        toastIcon.innerHTML = '<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>';
+      } else {
+        toastIcon.innerHTML = '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>';
+      }
+      
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      loadUserInfo();
+      loadUserStats();
+    });
+  </script>
+</body>
+</html>

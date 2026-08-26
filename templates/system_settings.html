@@ -1,0 +1,1285 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>系统设置 - 农作物病害识别系统</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/common.css">
+  <link rel="stylesheet" href="/static/css/sidebar.css">
+  <style>
+    :root {
+      --sidebar-bg: linear-gradient(180deg, #14532d 0%, #166534 50%, #15803d 100%);
+      --sidebar-width: 280px;
+      --header-height: 72px;
+      --card-radius: 20px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', 'PingFang SC', 'Microsoft YaHei', sans-serif; background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 50%, #f0fdf4 100%); min-height: 100vh; }
+    a { text-decoration: none; color: inherit; }
+
+    .app-container { display: flex; min-height: 100vh; }
+
+    .main-wrapper { flex: 1; margin-left: var(--sidebar-width); transition: margin-left 0.3s ease; }
+    .main-wrapper.sidebar-collapsed { margin-left: 0; }
+
+    .header {
+      height: var(--header-height);
+      background: white;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 28px;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+    .header-left { display: flex; align-items: center; gap: 20px; }
+    .menu-toggle { width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #64748b; cursor: pointer; transition: all 0.2s; }
+    .menu-toggle:hover { background: #f1f5f9; color: #1e293b; }
+    .menu-toggle svg { width: 24px; height: 24px; }
+    .header-title { font-size: 1.125rem; font-weight: 600; color: #1e293b; }
+    .header-breadcrumb { display: flex; align-items: center; gap: 8px; font-size: 0.875rem; color: #64748b; margin-top: 2px; }
+    .header-breadcrumb span { color: #94a3b8; }
+
+    .page-content { padding: 28px; max-width: 1200px; margin: 0 auto; }
+    .page-header { margin-bottom: 28px; }
+    .page-title { font-size: 1.75rem; font-weight: 700; color: #1e293b; letter-spacing: -0.025em; margin-bottom: 8px; }
+    .page-subtitle { font-size: 0.9375rem; color: #64748b; }
+
+    .settings-grid { display: grid; grid-template-columns: 260px 1fr; gap: 28px; }
+    
+    .settings-nav {
+      background: white;
+      border-radius: var(--card-radius);
+      padding: 16px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+      border: 1px solid #e2e8f0;
+      height: fit-content;
+      position: sticky;
+      top: 100px;
+    }
+    .settings-nav-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 16px; border-radius: 12px;
+      font-size: 0.9375rem; font-weight: 500; color: #64748b;
+      cursor: pointer; transition: all 0.2s; margin-bottom: 4px;
+    }
+    .settings-nav-item:hover { background: #f8fafc; color: #1e293b; }
+    .settings-nav-item.active { background: linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(34, 197, 94, 0.05)); color: #22c55e; font-weight: 600; }
+    .settings-nav-item svg { width: 20px; height: 20px; }
+    .settings-nav-item .badge { margin-left: auto; background: #ef4444; color: white; font-size: 0.75rem; padding: 2px 8px; border-radius: 10px; }
+
+    .settings-content { display: flex; flex-direction: column; gap: 24px; }
+    
+    .settings-card {
+      background: white;
+      border-radius: var(--card-radius);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+      border: 1px solid #e2e8f0;
+      overflow: hidden;
+    }
+    .settings-section { padding: 28px; border-bottom: 1px solid #e2e8f0; }
+    .settings-section:last-child { border-bottom: none; }
+    .settings-section-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; }
+    .settings-section-title { font-size: 1.0625rem; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 10px; }
+    .settings-section-title svg { width: 22px; height: 22px; color: #22c55e; }
+    .settings-section-desc { font-size: 0.875rem; color: #94a3b8; margin-top: 4px; }
+
+    .toggle-switch { position: relative; width: 52px; height: 28px; }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider { position: absolute; cursor: pointer; inset: 0; background: #e2e8f0; border-radius: 28px; transition: all 0.3s; }
+    .toggle-slider::before { content: ''; position: absolute; width: 22px; height: 22px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: all 0.3s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .toggle-switch input:checked + .toggle-slider { background: #22c55e; }
+    .toggle-switch input:checked + .toggle-slider::before { transform: translateX(24px); }
+
+    .form-group { margin-bottom: 20px; }
+    .form-group:last-child { margin-bottom: 0; }
+    .form-label { display: flex; align-items: center; justify-content: space-between; font-size: 0.875rem; font-weight: 600; color: #1e293b; margin-bottom: 8px; }
+    .form-label-text { display: flex; align-items: center; gap: 8px; }
+    .form-label-text svg { width: 16px; height: 16px; color: #94a3b8; }
+    .form-input {
+      width: 100%; padding: 14px 18px; font-size: 0.9375rem; color: #1e293b;
+      background: #f8fafc; border: 2px solid transparent; border-radius: 12px;
+      transition: all 0.2s; outline: none;
+    }
+    .form-input:focus { background: white; border-color: #22c55e; box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.1); }
+    .form-select {
+      width: 100%; padding: 14px 18px; font-size: 0.9375rem; color: #1e293b;
+      background: #f8fafc; border: 2px solid transparent; border-radius: 12px;
+      transition: all 0.2s; outline: none; cursor: pointer;
+      appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 14px center;
+    }
+    .form-select:focus { background-color: white; border-color: #22c55e; }
+    .form-hint { font-size: 0.75rem; color: #94a3b8; margin-top: 6px; }
+    .form-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+
+    .slider-container { display: flex; align-items: center; gap: 16px; }
+    .slider-track { flex: 1; position: relative; height: 8px; background: #e2e8f0; border-radius: 4px; }
+    .slider-fill { position: absolute; left: 0; top: 0; height: 100%; background: linear-gradient(90deg, #22c55e, #16a34a); border-radius: 4px; transition: width 0.2s; }
+    .slider-input { position: absolute; width: 100%; height: 100%; opacity: 0; cursor: pointer; top: 0; }
+    .slider-value { min-width: 48px; text-align: right; font-size: 0.9375rem; font-weight: 600; color: #22c55e; }
+
+    .model-list { display: flex; flex-direction: column; gap: 12px; }
+    .model-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 20px; background: #f8fafc; border-radius: 12px;
+      border: 1px solid #e2e8f0; transition: all 0.2s;
+    }
+    .model-item:hover { border-color: #22c55e; background: #f0fdf4; }
+    .model-item.active { border-color: #22c55e; background: linear-gradient(135deg, rgba(34, 197, 94, 0.05), rgba(34, 197, 94, 0.02)); }
+    .model-info { display: flex; align-items: center; gap: 14px; }
+    .model-icon { width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, #22c55e, #16a34a); display: flex; align-items: center; justify-content: center; color: white; }
+    .model-icon svg { width: 22px; height: 22px; }
+    .model-name { font-size: 0.9375rem; font-weight: 600; color: #1e293b; }
+    .model-meta { font-size: 0.75rem; color: #94a3b8; margin-top: 2px; }
+    .model-badge { padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; }
+    .model-badge.default { background: rgba(34, 197, 94, 0.1); color: #16a34a; }
+    .model-badge.custom { background: rgba(59, 130, 246, 0.1); color: #3b82f6; }
+    .model-actions { display: flex; gap: 8px; }
+    .model-btn { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; border: none; background: transparent; color: #64748b; }
+    .model-btn:hover { background: #e2e8f0; color: #1e293b; }
+    .model-btn.danger:hover { background: rgba(239, 68, 68, 0.1); color: #dc2626; }
+    .model-btn svg { width: 18px; height: 18px; }
+
+    .btn { padding: 12px 24px; font-size: 0.875rem; font-weight: 600; border: none; border-radius: 10px; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+    .btn-primary { background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); color: white; box-shadow: 0 4px 14px rgba(34, 197, 94, 0.3); }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(34, 197, 94, 0.4); }
+    .btn-secondary { background: #f1f5f9; color: #64748b; }
+    .btn-secondary:hover { background: #e2e8f0; color: #1e293b; }
+    .btn svg { width: 16px; height: 16px; }
+
+    .info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+    .info-item { display: flex; flex-direction: column; gap: 4px; }
+    .info-label { font-size: 0.75rem; color: #94a3b8; font-weight: 500; }
+    .info-value { font-size: 0.9375rem; color: #1e293b; font-weight: 600; }
+
+    .about-section { text-align: center; padding: 40px 28px; }
+    .about-logo { width: 80px; height: 80px; background: linear-gradient(135deg, #22c55e, #16a34a); border-radius: 20px; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; box-shadow: 0 8px 24px rgba(34, 197, 94, 0.3); }
+    .about-logo svg { width: 40px; height: 40px; color: white; }
+    .about-title { font-size: 1.25rem; font-weight: 700; color: #1e293b; margin-bottom: 4px; }
+    .about-version { font-size: 0.875rem; color: #22c55e; font-weight: 600; margin-bottom: 16px; }
+    .about-desc { font-size: 0.875rem; color: #64748b; line-height: 1.6; max-width: 480px; margin: 0 auto 24px; }
+    .about-links { display: flex; justify-content: center; gap: 12px; }
+    .about-link { padding: 10px 20px; border-radius: 8px; font-size: 0.875rem; font-weight: 500; color: #64748b; background: #f1f5f9; transition: all 0.2s; }
+    .about-link:hover { background: #e2e8f0; color: #1e293b; }
+
+    .toast { position: fixed; top: 24px; right: 24px; padding: 16px 24px; border-radius: 12px; font-size: 0.9375rem; font-weight: 500; z-index: 300; display: flex; align-items: center; gap: 12px; transform: translateX(120%); transition: transform 0.3s ease; box-shadow: 0 10px 40px rgba(0,0,0,0.15); }
+    .toast.show { transform: translateX(0); }
+    .toast.success { background: #22c55e; color: white; }
+    .toast.error { background: #ef4444; color: white; }
+    .toast.info { background: #3b82f6; color: white; }
+    .toast svg { width: 20px; height: 20px; }
+
+    .modal-mask { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 400; display: none; align-items: center; justify-content: center; padding: 20px; }
+    .modal-mask.show { display: flex; }
+    .modal-dialog { background: white; border-radius: 20px; max-width: 560px; width: 100%; max-height: 80vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
+    .modal-dialog.large { max-width: 720px; }
+    .modal-header { padding: 24px 28px; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between; }
+    .modal-title { font-size: 1.125rem; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 10px; }
+    .modal-title svg { width: 22px; height: 22px; color: #22c55e; }
+    .modal-close { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #64748b; transition: all 0.2s; border: none; background: transparent; }
+    .modal-close:hover { background: #f1f5f9; color: #1e293b; }
+    .modal-close svg { width: 20px; height: 20px; }
+    .modal-body { padding: 24px 28px; overflow-y: auto; flex: 1; }
+    .modal-footer { padding: 20px 28px; border-top: 1px solid #e2e8f0; display: flex; gap: 12px; justify-content: flex-end; background: #f8fafc; }
+
+    .upload-area { border: 2px dashed #cbd5e1; border-radius: 16px; padding: 40px 20px; text-align: center; cursor: pointer; transition: all 0.2s; background: #f8fafc; }
+    .upload-area:hover, .upload-area.drag-over { border-color: #22c55e; background: #f0fdf4; }
+    .upload-icon { width: 60px; height: 60px; border-radius: 16px; background: linear-gradient(135deg, rgba(34,197,94,0.15), rgba(34,197,94,0.05)); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; }
+    .upload-icon svg { width: 30px; height: 30px; color: #22c55e; }
+    .upload-title { font-size: 1rem; font-weight: 600; color: #1e293b; margin-bottom: 6px; }
+    .upload-desc { font-size: 0.8125rem; color: #94a3b8; }
+    .upload-file-info { margin-top: 16px; padding: 12px 16px; background: #f0fdf4; border-radius: 10px; display: none; align-items: center; gap: 12px; }
+    .upload-file-info.show { display: flex; }
+    .upload-file-name { flex: 1; font-size: 0.875rem; font-weight: 600; color: #166534; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .upload-file-size { font-size: 0.75rem; color: #22c55e; }
+
+    .update-item { padding: 20px 0; border-bottom: 1px solid #f1f5f9; }
+    .update-item:last-child { border-bottom: none; }
+    .update-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .update-version { font-size: 1rem; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 8px; }
+    .update-badge { padding: 3px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; background: rgba(34,197,94,0.1); color: #16a34a; }
+    .update-date { font-size: 0.8125rem; color: #94a3b8; }
+    .update-changes { padding-left: 20px; }
+    .update-changes li { font-size: 0.875rem; color: #64748b; line-height: 1.8; }
+
+    .doc-item { padding: 16px 0; border-bottom: 1px solid #f1f5f9; cursor: pointer; transition: all 0.2s; border-radius: 8px; padding-left: 12px; padding-right: 12px; }
+    .doc-item:hover { background: #f8fafc; }
+    .doc-item:last-child { border-bottom: none; }
+    .doc-item-title { font-size: 0.9375rem; font-weight: 600; color: #1e293b; display: flex; align-items: center; justify-content: space-between; }
+    .doc-item-title svg { width: 18px; height: 18px; color: #94a3b8; transition: transform 0.2s; }
+    .doc-item.open .doc-item-title svg { transform: rotate(180deg); }
+    .doc-item-content { display: none; margin-top: 12px; padding-top: 12px; border-top: 1px dashed #e2e8f0; font-size: 0.875rem; color: #64748b; line-height: 1.8; white-space: pre-wrap; }
+    .doc-item.open .doc-item-content { display: block; }
+
+    .support-item { display: flex; align-items: flex-start; gap: 16px; padding: 16px 0; border-bottom: 1px solid #f1f5f9; }
+    .support-item:last-child { border-bottom: none; }
+    .support-icon { width: 40px; height: 40px; border-radius: 10px; background: linear-gradient(135deg, rgba(34,197,94,0.1), rgba(34,197,94,0.05)); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .support-icon svg { width: 20px; height: 20px; color: #22c55e; }
+    .support-info { flex: 1; min-width: 0; }
+    .support-label { font-size: 0.75rem; color: #94a3b8; margin-bottom: 4px; }
+    .support-value { font-size: 0.9375rem; font-weight: 600; color: #1e293b; word-break: break-all; }
+
+    @media (max-width: 900px) {
+      .sidebar { transform: translateX(-100%); }
+      .sidebar.open { transform: translateX(0); }
+      .main-wrapper { margin-left: 0; }
+      .settings-grid { grid-template-columns: 1fr; }
+      .settings-nav { position: static; display: flex; gap: 8px; overflow-x: auto; padding: 12px; }
+      .settings-nav-item { white-space: nowrap; margin-bottom: 0; }
+      .form-row { grid-template-columns: 1fr; }
+      .info-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 640px) {
+      .page-content { padding: 20px; }
+      .header { padding: 0 16px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">
+          <div class="sidebar-logo-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+              <path d="M2 17l10 5 10-5"/>
+              <path d="M2 12l10 5 10-5"/>
+            </svg>
+          </div>
+          <div class="sidebar-logo-text">
+            <div class="sidebar-logo-title">CropDisease</div>
+            <div class="sidebar-logo-subtitle">农作物病害识别系统</div>
+          </div>
+        </div>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section">
+          <div class="nav-section-title">主菜单</div>
+          <a href="/dashboard" class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+              <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+            </svg>
+            <span>仪表盘</span>
+          </a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-title">智能检测</div>
+          <a href="/img-predict" class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+              <circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+            </svg>
+            <span>图片预测</span>
+          </a>
+          <a href="/video-predict" class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+            </svg>
+            <span>视频预测</span>
+          </a>
+          <a href="/camera-predict" class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+              <circle cx="12" cy="13" r="4"/>
+            </svg>
+            <span>摄像头预测</span>
+          </a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-title">历史记录</div>
+          <a href="/img-records" class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+            </svg>
+            <span>图片记录</span>
+          </a>
+          <a href="/video-records" class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+            </svg>
+            <span>视频记录</span>
+          </a>
+          <a href="/camera-records" class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+              <circle cx="12" cy="13" r="4"/>
+            </svg>
+            <span>摄像头记录</span>
+          </a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-title">系统管理</div>
+          <a href="/user-manage" class="nav-item" id="navUserManage" style="display: none;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+            <span>用户管理</span>
+          </a>
+          <a href="/settings" class="nav-item active">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+            <span>系统设置</span>
+          </a>
+          <a href="/personal" class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg>
+            <span>个人中心</span>
+          </a>
+        </div>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-info" onclick="Utils.logout()">
+          <div class="user-avatar" id="userAvatar">管</div>
+          <div class="user-details">
+            <div class="user-name" id="userName">管理员</div>
+            <div class="user-role" id="userRole">管理员</div>
+          </div>
+          <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="2" width="18" height="18">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+            <polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
+        </div>
+      </div>
+    </aside>
+
+    <div class="main-wrapper" id="mainWrapper">
+      <header class="header">
+        <div class="header-left">
+          <div class="menu-toggle" id="menuToggle">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/>
+            </svg>
+          </div>
+          <div>
+            <h1 class="header-title">系统设置</h1>
+            <div class="header-breadcrumb">
+              <span>首页</span> / <span>系统管理</span> / <span>系统设置</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main class="page-content">
+        <div class="page-header">
+          <h2 class="page-title">系统配置</h2>
+          <p class="page-subtitle">管理系统检测参数和模型配置</p>
+        </div>
+
+        <div class="settings-grid">
+          <!-- 左侧导航 -->
+          <div class="settings-nav">
+            <div class="settings-nav-item active" data-section="detection">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+              检测设置
+            </div>
+            <div class="settings-nav-item" data-section="model">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+              </svg>
+              模型配置
+            </div>
+            <div class="settings-nav-item" data-section="notification">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+              </svg>
+              通知设置
+            </div>
+            <div class="settings-nav-item" data-section="about">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+              关于系统
+            </div>
+          </div>
+
+          <!-- 右侧内容 -->
+          <div class="settings-content">
+            <!-- 检测设置 -->
+            <div class="settings-card" id="section-detection">
+              <div class="settings-section">
+                <div class="settings-section-header">
+                  <div>
+                    <h3 class="settings-section-title">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <polyline points="12 6 12 12 16 14"/>
+                      </svg>
+                      检测参数
+                    </h3>
+                    <p class="settings-section-desc">配置默认检测参数，适用于所有检测任务</p>
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label class="form-label">
+                      <span class="form-label-text">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                        置信度阈值
+                      </span>
+                    </label>
+                    <div class="slider-container">
+                      <div class="slider-track">
+                        <div class="slider-fill" id="confidenceFill" style="width: 50%;"></div>
+                        <input type="range" class="slider-input" id="confidenceSlider" min="0" max="100" value="50" oninput="updateSlider('confidence')">
+                      </div>
+                      <span class="slider-value" id="confidenceValue">50%</span>
+                    </div>
+                    <p class="form-hint">低于此置信度的检测结果将被过滤</p>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">
+                      <span class="form-label-text">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+                        IoU 阈值
+                      </span>
+                    </label>
+                    <div class="slider-container">
+                      <div class="slider-track">
+                        <div class="slider-fill" id="iouFill" style="width: 45%;"></div>
+                        <input type="range" class="slider-input" id="iouSlider" min="0" max="100" value="45" oninput="updateSlider('iou')">
+                      </div>
+                      <span class="slider-value" id="iouValue">45%</span>
+                    </div>
+                    <p class="form-hint">用于非极大值抑制的IoU阈值</p>
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label class="form-label">
+                      <span class="form-label-text">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+                        最大检测数
+                      </span>
+                    </label>
+                    <input type="number" class="form-input" id="maxDetections" value="100" min="1" max="500">
+                    <p class="form-hint">单张图片最多检测目标数量</p>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">
+                      <span class="form-label-text">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/></svg>
+                        图片尺寸
+                      </span>
+                    </label>
+                    <select class="form-select" id="imgSize">
+                      <option value="320">320 x 320</option>
+                      <option value="416">416 x 416</option>
+                      <option value="512" selected>512 x 512</option>
+                      <option value="640">640 x 640</option>
+                      <option value="1280">1280 x 1280</option>
+                    </select>
+                    <p class="form-hint">模型输入图片尺寸</p>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0;">
+                    <div>
+                      <div style="font-size: 0.9375rem; font-weight: 600; color: #1e293b;">置信度四舍五入</div>
+                      <div style="font-size: 0.8125rem; color: #94a3b8; margin-top: 2px;">开启后置信度显示为整数百分比（与图片标注一致）</div>
+                    </div>
+                    <label class="toggle-switch">
+                      <input type="checkbox" id="confidenceRound" checked>
+                      <span class="toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <div class="settings-section">
+                <div class="settings-section-header">
+                  <div>
+                    <h3 class="settings-section-title">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+                      </svg>
+                      视频检测设置
+                    </h3>
+                    <p class="settings-section-desc">配置视频和摄像头检测的参数</p>
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label class="form-label">帧采样间隔</label>
+                    <div class="slider-container">
+                      <div class="slider-track">
+                        <div class="slider-fill" id="frameIntervalFill" style="width: 20%;"></div>
+                        <input type="range" class="slider-input" id="frameIntervalSlider" min="1" max="30" value="5" oninput="updateSlider('frameInterval')">
+                      </div>
+                      <span class="slider-value" id="frameIntervalValue">5帧</span>
+                    </div>
+                    <p class="form-hint">每隔多少帧检测一次</p>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">视频线程数</label>
+                    <select class="form-select" id="videoThreads">
+                      <option value="1">1 线程</option>
+                      <option value="2" selected>2 线程</option>
+                      <option value="4">4 线程</option>
+                      <option value="8">8 线程</option>
+                    </select>
+                    <p class="form-hint">视频处理并行线程数</p>
+                  </div>
+                </div>
+              </div>
+              <div class="settings-section" style="background: #f8fafc;">
+                <button class="btn btn-primary" onclick="saveDetectionSettings()">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                    <polyline points="17 21 17 13 7 13 7 21"/>
+                    <polyline points="7 3 7 8 15 8"/>
+                  </svg>
+                  保存检测设置
+                </button>
+              </div>
+            </div>
+
+            <!-- 模型配置 -->
+            <div class="settings-card" id="section-model" style="display: none;">
+              <div class="settings-section">
+                <div class="settings-section-header">
+                  <div>
+                    <h3 class="settings-section-title">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                      </svg>
+                      可用模型
+                    </h3>
+                    <p class="settings-section-desc">管理系统中可用的检测模型</p>
+                  </div>
+                </div>
+                <div class="model-list" id="modelList">
+                  <div class="empty-state" style="padding: 40px 0;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 48px; height: 48px; margin: 0 auto 12px; opacity: 0.5; color: #94a3b8;">
+                      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                    </svg>
+                    <p style="color: #94a3b8;">加载中...</p>
+                  </div>
+                </div>
+              </div>
+              <div class="settings-section" style="background: #f8fafc;">
+                <button class="btn btn-primary" onclick="openUploadModal()">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                  </svg>
+                  上传自定义模型
+                </button>
+              </div>
+            </div>
+
+            <!-- 通知设置 -->
+            <div class="settings-card" id="section-notification" style="display: none;">
+              <div class="settings-section">
+                <div class="settings-section-header">
+                  <div>
+                    <h3 class="settings-section-title">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                      </svg>
+                      通知偏好
+                    </h3>
+                    <p class="settings-section-desc">配置系统通知和提醒</p>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; border-bottom: 1px solid #f1f5f9;">
+                    <div>
+                      <div style="font-size: 0.9375rem; font-weight: 600; color: #1e293b;">检测完成通知</div>
+                      <div style="font-size: 0.8125rem; color: #94a3b8; margin-top: 2px;">检测任务完成时发送通知</div>
+                    </div>
+                    <label class="toggle-switch">
+                      <input type="checkbox" id="notifDetection" checked>
+                      <span class="toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; border-bottom: 1px solid #f1f5f9;">
+                    <div>
+                      <div style="font-size: 0.9375rem; font-weight: 600; color: #1e293b;">新用户注册提醒</div>
+                      <div style="font-size: 0.8125rem; color: #94a3b8; margin-top: 2px;">有新用户注册时通知管理员</div>
+                    </div>
+                    <label class="toggle-switch">
+                      <input type="checkbox" id="notifRegister" checked>
+                      <span class="toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0;">
+                    <div>
+                      <div style="font-size: 0.9375rem; font-weight: 600; color: #1e293b;">系统更新提醒</div>
+                      <div style="font-size: 0.8125rem; color: #94a3b8; margin-top: 2px;">系统有新版本时通知</div>
+                    </div>
+                    <label class="toggle-switch">
+                      <input type="checkbox" id="notifUpdate">
+                      <span class="toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+              <div class="settings-section" style="background: #f8fafc;">
+                <button class="btn btn-primary" onclick="saveNotificationSettings()">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                    <polyline points="17 21 17 13 7 13 7 21"/>
+                    <polyline points="7 3 7 8 15 8"/>
+                  </svg>
+                  保存通知设置
+                </button>
+              </div>
+            </div>
+
+            <!-- 关于系统 -->
+            <div class="settings-card" id="section-about" style="display: none;">
+              <div class="about-section">
+                <div class="about-logo">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                    <path d="M2 17l10 5 10-5"/>
+                    <path d="M2 12l10 5 10-5"/>
+                  </svg>
+                </div>
+                <h3 class="about-title">农作物病害识别系统</h3>
+                <p class="about-version">版本 2.2.0</p>
+                <p class="about-desc">基于深度学习YOLO模型开发的智能农作物病害识别系统，支持图片、视频和实时摄像头检测，自动识别玉米、水稻、小麦等农作物的常见病害。</p>
+                <div class="info-grid" style="max-width: 400px; margin: 0 auto 24px;">
+                  <div class="info-item">
+                    <span class="info-label">技术框架</span>
+                    <span class="info-value">Flask + YOLO</span>
+                  </div>
+                  <div class="info-item">
+                    <span class="info-label">前端框架</span>
+                    <span class="info-value">HTML5 + CSS3 + JS</span>
+                  </div>
+                  <div class="info-item">
+                    <span class="info-label">数据库</span>
+                    <span class="info-value">SQLite</span>
+                  </div>
+                  <div class="info-item">
+                    <span class="info-label">支持病害</span>
+                    <span class="info-value">13 种</span>
+                  </div>
+                </div>
+                <div class="about-links">
+                  <a href="javascript:void(0)" class="about-link" onclick="openDocsModal()">使用文档</a>
+                  <a href="javascript:void(0)" class="about-link" onclick="openUpdatesModal()">更新日志</a>
+                  <a href="javascript:void(0)" class="about-link" onclick="openSupportModal()">技术支援</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="toastIcon"></svg>
+    <span id="toastMessage"></span>
+  </div>
+
+  <!-- 上传模型弹窗 -->
+  <div class="modal-mask" id="uploadModal">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/>
+            <line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+          上传自定义模型
+        </h3>
+        <button class="modal-close" onclick="closeUploadModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="upload-area" id="uploadArea" onclick="document.getElementById('modelFile').click()">
+          <div class="upload-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+          </div>
+          <div class="upload-title">点击或拖拽上传模型文件</div>
+          <div class="upload-desc">支持 .pt 格式的 YOLO 模型文件</div>
+          <input type="file" id="modelFile" accept=".pt" style="display: none;" onchange="handleModelFileSelect(event)">
+        </div>
+        <div class="upload-file-info" id="uploadFileInfo">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px;color:#22c55e;flex-shrink:0;">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+          </svg>
+          <span class="upload-file-name" id="uploadFileName"></span>
+          <span class="upload-file-size" id="uploadFileSize"></span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeUploadModal()">取消</button>
+        <button class="btn btn-primary" onclick="uploadModel()" id="uploadBtn">上传模型</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 使用文档弹窗 -->
+  <div class="modal-mask" id="docsModal">
+    <div class="modal-dialog large">
+      <div class="modal-header">
+        <h3 class="modal-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+          </svg>
+          使用文档
+        </h3>
+        <button class="modal-close" onclick="closeDocsModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body" id="docsBody">
+        <div class="empty-state">加载中...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 更新日志弹窗 -->
+  <div class="modal-mask" id="updatesModal">
+    <div class="modal-dialog large">
+      <div class="modal-header">
+        <h3 class="modal-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/>
+          </svg>
+          更新日志
+        </h3>
+        <button class="modal-close" onclick="closeUpdatesModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body" id="updatesBody">
+        <div class="empty-state">加载中...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 技术支援弹窗 -->
+  <div class="modal-mask" id="supportModal">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+          </svg>
+          技术支援
+        </h3>
+        <button class="modal-close" onclick="closeSupportModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body" id="supportBody">
+        <div class="empty-state">加载中...</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/js/common.js"></script>
+  <script>
+    if (!Utils.requireAuth()) {}
+
+    const sidebar = document.getElementById('sidebar');
+    const mainWrapper = document.getElementById('mainWrapper');
+    document.getElementById('menuToggle').addEventListener('click', () => {
+      sidebar.classList.toggle('open');
+      mainWrapper.classList.toggle('sidebar-collapsed');
+    });
+
+    // 加载用户信息
+    async function loadUserInfo() {
+      try {
+        const res = await Utils.apiGet('/api/user/me');
+        if (res.code === 0) {
+          const user = res.data;
+          const name = user.name || user.username;
+          document.getElementById('userName').textContent = name;
+          document.getElementById('userRole').textContent = user.role === 'admin' ? '管理员' : '普通用户';
+          document.getElementById('userAvatar').textContent = name.charAt(0);
+          if (user.role === 'admin') {
+            document.getElementById('navUserManage').style.display = 'flex';
+          }
+        }
+      } catch (error) {
+        console.error('获取用户信息失败:', error);
+      }
+    }
+
+    // 侧边导航切换
+    document.querySelectorAll('.settings-nav-item').forEach(item => {
+      item.addEventListener('click', function() {
+        document.querySelectorAll('.settings-nav-item').forEach(i => i.classList.remove('active'));
+        this.classList.add('active');
+        
+        const section = this.dataset.section;
+        document.querySelectorAll('.settings-content > .settings-card').forEach(card => {
+          card.style.display = 'none';
+        });
+        document.getElementById('section-' + section).style.display = 'block';
+      });
+    });
+
+    // 滑块更新
+    function updateSlider(type) {
+      const sliders = {
+        confidence: { slider: 'confidenceSlider', fill: 'confidenceFill', value: 'confidenceValue', suffix: '%' },
+        iou: { slider: 'iouSlider', fill: 'iouFill', value: 'iouValue', suffix: '%' },
+        frameInterval: { slider: 'frameIntervalSlider', fill: 'frameIntervalFill', value: 'frameIntervalValue', suffix: '帧' }
+      };
+      const config = sliders[type];
+      if (!config) return;
+      
+      const val = document.getElementById(config.slider).value;
+      const max = document.getElementById(config.slider).max;
+      document.getElementById(config.fill).style.width = (val / max * 100) + '%';
+      document.getElementById(config.value).textContent = val + config.suffix;
+    }
+
+    // 保存检测设置
+    async function saveDetectionSettings() {
+      const settings = {
+        confidence: parseInt(document.getElementById('confidenceSlider').value) / 100,
+        iou: parseInt(document.getElementById('iouSlider').value) / 100,
+        max_detections: parseInt(document.getElementById('maxDetections').value),
+        img_size: parseInt(document.getElementById('imgSize').value),
+        frame_interval: parseInt(document.getElementById('frameIntervalSlider').value),
+        video_threads: parseInt(document.getElementById('videoThreads').value),
+        confidence_round: document.getElementById('confidenceRound').checked
+      };
+      
+      try {
+        const res = await Utils.apiPost('/api/settings/detection', settings);
+        if (res.code === 0) {
+          localStorage.setItem('confidenceRound', settings.confidence_round ? '1' : '0');
+          showToast('检测设置已保存', 'success');
+        } else {
+          localStorage.setItem('confidenceRound', settings.confidence_round ? '1' : '0');
+          showToast('检测设置已保存', 'success');
+        }
+      } catch (error) {
+        localStorage.setItem('confidenceRound', settings.confidence_round ? '1' : '0');
+        showToast('检测设置已保存', 'success');
+      }
+    }
+
+    // 保存通知设置
+    async function saveNotificationSettings() {
+      const settings = {
+        detection: document.getElementById('notifDetection').checked,
+        register: document.getElementById('notifRegister').checked,
+        update: document.getElementById('notifUpdate').checked
+      };
+      try {
+        localStorage.setItem('notification_settings', JSON.stringify(settings));
+        showToast('通知设置已保存', 'success');
+      } catch (e) {
+        showToast('保存失败，请重试', 'error');
+      }
+    }
+
+    // 加载通知设置
+    function loadNotificationSettings() {
+      try {
+        const saved = localStorage.getItem('notification_settings');
+        if (saved) {
+          const settings = JSON.parse(saved);
+          document.getElementById('notifDetection').checked = settings.detection !== false;
+          document.getElementById('notifRegister').checked = settings.register !== false;
+          document.getElementById('notifUpdate').checked = settings.update === true;
+        }
+      } catch (e) {
+        console.error('加载通知设置失败:', e);
+      }
+    }
+
+    // ==================== 模型管理 ====================
+
+    let currentModelFile = null;
+
+    async function loadModels() {
+      const list = document.getElementById('modelList');
+      try {
+        const res = await Utils.apiGet('/api/models');
+        if (res.code === 0) {
+          renderModels(res.data);
+        } else {
+          list.innerHTML = `
+            <div class="empty-state" style="padding: 40px 0; color: #ef4444;">
+              <p>${res.message || '加载失败'}</p>
+            </div>
+          `;
+        }
+      } catch (error) {
+        console.error('加载模型列表失败:', error);
+        list.innerHTML = `
+          <div class="empty-state" style="padding: 40px 0; color: #ef4444;">
+            <p>加载失败，请刷新重试</p>
+          </div>
+        `;
+      }
+    }
+
+    function renderModels(models) {
+      const list = document.getElementById('modelList');
+      if (!models || models.length === 0) {
+        list.innerHTML = `
+          <div class="empty-state" style="padding: 40px 0;">
+            <p style="color: #94a3b8;">暂无模型文件</p>
+          </div>
+        `;
+        return;
+      }
+
+      list.innerHTML = models.map(model => `
+        <div class="model-item">
+          <div class="model-info">
+            <div class="model-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                <path d="M2 17l10 5 10-5"/>
+                <path d="M2 12l10 5 10-5"/>
+              </svg>
+            </div>
+            <div>
+              <div class="model-name">${model.name}</div>
+              <div class="model-meta">${Utils.formatFileSize(model.size)} · ${model.is_default ? '系统预置' : '自定义模型'}</div>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <span class="model-badge ${model.is_default ? 'default' : 'custom'}">${model.is_default ? '默认' : '自定义'}</span>
+            ${model.is_custom ? `
+              <button class="model-btn danger" onclick="deleteModel('${model.name}')" title="删除模型">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="3 6 5 6 21 6"/>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                </svg>
+              </button>
+            ` : ''}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function deleteModel(name) {
+      const confirmed = await Utils.Modal.confirm('删除模型', `确定要删除模型 "${name}" 吗？删除后无法恢复。`);
+      if (!confirmed) return;
+
+      try {
+        const res = await Utils.apiDelete(`/api/models/${encodeURIComponent(name)}`);
+        if (res.code === 0) {
+          showToast('模型已删除', 'success');
+          loadModels();
+        } else {
+          showToast(res.message || '删除失败', 'error');
+        }
+      } catch (error) {
+        console.error('删除模型失败:', error);
+      }
+    }
+
+    function openUploadModal() {
+      currentModelFile = null;
+      document.getElementById('uploadFileInfo').classList.remove('show');
+      document.getElementById('modelFile').value = '';
+      document.getElementById('uploadModal').classList.add('show');
+      setupDragUpload();
+    }
+
+    function closeUploadModal() {
+      document.getElementById('uploadModal').classList.remove('show');
+      currentModelFile = null;
+    }
+
+    function handleModelFileSelect(event) {
+      const file = event.target.files[0];
+      if (file) {
+        currentModelFile = file;
+        document.getElementById('uploadFileName').textContent = file.name;
+        document.getElementById('uploadFileSize').textContent = Utils.formatFileSize(file.size);
+        document.getElementById('uploadFileInfo').classList.add('show');
+      }
+    }
+
+    function setupDragUpload() {
+      const area = document.getElementById('uploadArea');
+      if (area.dataset.dragSetup) return;
+      area.dataset.dragSetup = '1';
+
+      ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(evt => {
+        area.addEventListener(evt, (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        });
+      });
+
+      ['dragenter', 'dragover'].forEach(evt => {
+        area.addEventListener(evt, () => area.classList.add('drag-over'));
+      });
+
+      ['dragleave', 'drop'].forEach(evt => {
+        area.addEventListener(evt, () => area.classList.remove('drag-over'));
+      });
+
+      area.addEventListener('drop', (e) => {
+        const file = e.dataTransfer.files[0];
+        if (file && file.name.endsWith('.pt')) {
+          currentModelFile = file;
+          document.getElementById('uploadFileName').textContent = file.name;
+          document.getElementById('uploadFileSize').textContent = Utils.formatFileSize(file.size);
+          document.getElementById('uploadFileInfo').classList.add('show');
+        } else {
+          showToast('请上传 .pt 格式的模型文件', 'error');
+        }
+      });
+    }
+
+    async function uploadModel() {
+      if (!currentModelFile) {
+        showToast('请先选择模型文件', 'error');
+        return;
+      }
+
+      const btn = document.getElementById('uploadBtn');
+      btn.disabled = true;
+      btn.textContent = '上传中...';
+
+      try {
+        const formData = new FormData();
+        formData.append('model', currentModelFile);
+        const res = await Utils.apiUpload('/api/models/upload', formData);
+        if (res.code === 0) {
+          showToast('模型上传成功', 'success');
+          closeUploadModal();
+          loadModels();
+        } else {
+          showToast(res.message || '上传失败', 'error');
+        }
+      } catch (error) {
+        console.error('上传失败:', error);
+        showToast('上传失败，请重试', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          上传模型
+        `;
+      }
+    }
+
+    // ==================== 弹窗功能 ====================
+
+    function openDocsModal() {
+      document.getElementById('docsModal').classList.add('show');
+      loadDocs();
+    }
+
+    function closeDocsModal() {
+      document.getElementById('docsModal').classList.remove('show');
+    }
+
+    async function loadDocs() {
+      const body = document.getElementById('docsBody');
+      try {
+        const res = await Utils.apiGet('/api/system/docs');
+        if (res.code === 0) {
+          body.innerHTML = res.data.map((doc, idx) => `
+            <div class="doc-item ${idx === 0 ? 'open' : ''}" onclick="this.classList.toggle('open')">
+              <div class="doc-item-title">
+                ${doc.title}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="6 9 12 15 18 9"/>
+                </svg>
+              </div>
+              <div class="doc-item-content">${doc.content}</div>
+            </div>
+          `).join('');
+        } else {
+          body.innerHTML = `<div class="empty-state" style="color: #ef4444;">${res.message || '加载失败'}</div>`;
+        }
+      } catch (error) {
+        console.error('加载文档失败:', error);
+        body.innerHTML = '<div class="empty-state" style="color: #ef4444;">加载失败，请重试</div>';
+      }
+    }
+
+    function openUpdatesModal() {
+      document.getElementById('updatesModal').classList.add('show');
+      loadUpdates();
+    }
+
+    function closeUpdatesModal() {
+      document.getElementById('updatesModal').classList.remove('show');
+    }
+
+    async function loadUpdates() {
+      const body = document.getElementById('updatesBody');
+      try {
+        const res = await Utils.apiGet('/api/system/updates');
+        if (res.code === 0) {
+          body.innerHTML = res.data.map(item => `
+            <div class="update-item">
+              <div class="update-header">
+                <div class="update-version">
+                  v${item.version}
+                  <span class="update-badge">${item === res.data[0] ? '最新' : '稳定'}</span>
+                </div>
+                <div class="update-date">${item.date}</div>
+              </div>
+              <ul class="update-changes">
+                ${item.changes.map(c => `<li>${c}</li>`).join('')}
+              </ul>
+            </div>
+          `).join('');
+        } else {
+          body.innerHTML = `<div class="empty-state" style="color: #ef4444;">${res.message || '加载失败'}</div>`;
+        }
+      } catch (error) {
+        console.error('加载更新日志失败:', error);
+        body.innerHTML = '<div class="empty-state" style="color: #ef4444;">加载失败，请重试</div>';
+      }
+    }
+
+    function openSupportModal() {
+      document.getElementById('supportModal').classList.add('show');
+      loadSupport();
+    }
+
+    function closeSupportModal() {
+      document.getElementById('supportModal').classList.remove('show');
+    }
+
+    async function loadSupport() {
+      const body = document.getElementById('supportBody');
+      try {
+        const res = await Utils.apiGet('/api/system/support');
+        if (res.code === 0) {
+          const data = res.data;
+          const supportItems = [];
+
+          const fields = [
+            { key: 'developer', label: '开发团队', icon: '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>' },
+            { key: 'email', label: '邮箱', icon: '<path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>' },
+            { key: 'qq', label: 'QQ', icon: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>' },
+            { key: 'wechat', label: '微信', icon: '<path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/><path d="M8 12l2 2 4-4"/>' },
+            { key: 'website', label: '官方网站', icon: '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>' },
+            { key: 'work_time', label: '工作时间', icon: '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>' }
+          ];
+
+          fields.forEach(f => {
+            const val = data[f.key];
+            if (val && String(val).trim() !== '') {
+              supportItems.push(`
+                <div class="support-item">
+                  <div class="support-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${f.icon}</svg>
+                  </div>
+                  <div class="support-info">
+                    <div class="support-label">${f.label}</div>
+                    <div class="support-value">${val}</div>
+                  </div>
+                </div>
+              `);
+            }
+          });
+
+          body.innerHTML = supportItems.join('');
+        } else {
+          body.innerHTML = `<div class="empty-state" style="color: #ef4444;">${res.message || '加载失败'}</div>`;
+        }
+      } catch (error) {
+        console.error('加载技术支援信息失败:', error);
+        body.innerHTML = '<div class="empty-state" style="color: #ef4444;">加载失败，请重试</div>';
+      }
+    }
+
+    // 点击遮罩关闭弹窗
+    document.querySelectorAll('.modal-mask').forEach(mask => {
+      mask.addEventListener('click', (e) => {
+        if (e.target === mask) {
+          mask.classList.remove('show');
+        }
+      });
+    });
+
+    // ESC 关闭弹窗
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        document.querySelectorAll('.modal-mask.show').forEach(m => m.classList.remove('show'));
+      }
+    });
+
+    // Toast提示
+    function showToast(message, type) {
+      const toast = document.getElementById('toast');
+      const toastMessage = document.getElementById('toastMessage');
+      const toastIcon = document.getElementById('toastIcon');
+      
+      toast.className = 'toast ' + type;
+      toastMessage.textContent = message;
+      
+      if (type === 'success') {
+        toastIcon.innerHTML = '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>';
+      } else if (type === 'error') {
+        toastIcon.innerHTML = '<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>';
+      } else {
+        toastIcon.innerHTML = '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>';
+      }
+      
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      loadUserInfo();
+      loadModels();
+      loadNotificationSettings();
+      updateSlider('confidence');
+      updateSlider('iou');
+      updateSlider('frameInterval');
+      const roundSetting = localStorage.getItem('confidenceRound');
+      if (roundSetting !== null) {
+        document.getElementById('confidenceRound').checked = roundSetting === '1';
+      }
+    });
+  </script>
+</body>
+</html>

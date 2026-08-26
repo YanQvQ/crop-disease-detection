@@ -1,0 +1,1568 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="仪表盘 - 农作物病害识别系统">
+  <title>仪表盘 - 农作物病害识别系统</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/common.css">
+  <link rel="stylesheet" href="/static/css/sidebar.css">
+  <style>
+    :root {
+      --sidebar-bg: linear-gradient(180deg, #14532d 0%, #166534 50%, #15803d 100%);
+      --sidebar-width: 280px;
+      --header-height: 72px;
+      --card-radius: 20px;
+      --color-primary: #22c55e;
+      --bg-card: #ffffff;
+      --text-primary: #1e293b;
+      --text-secondary: #64748b;
+      --shadow-lg: 0 10px 40px rgba(0, 0, 0, 0.1);
+      --border-radius: 12px;
+      --transition-smooth: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', 'PingFang SC', 'Microsoft YaHei', sans-serif; background: #f0fdf4; }
+    a { text-decoration: none; color: inherit; }
+
+    .app-container { display: flex; min-height: 100vh; }
+
+    /* 侧边栏 */
+    .sidebar {
+      width: var(--sidebar-width);
+      background: var(--sidebar-bg);
+      position: fixed;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      display: flex;
+      flex-direction: column;
+      z-index: 100;
+      transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+    }
+    .sidebar.collapsed { transform: translateX(-100%); }
+    .sidebar-header {
+      padding: 24px 24px 20px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .sidebar-logo {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .sidebar-logo-icon {
+      width: 48px;
+      height: 48px;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(10px);
+    }
+    .sidebar-logo-icon svg { width: 28px; height: 28px; color: white; }
+    .sidebar-logo-text { color: white; }
+    .sidebar-logo-title { font-size: 1.125rem; font-weight: 700; letter-spacing: -0.02em; }
+    .sidebar-logo-subtitle { font-size: 0.75rem; opacity: 0.8; margin-top: 2px; }
+    .sidebar-nav { flex: 1; padding: 16px 12px; overflow-y: auto; }
+    .nav-section { margin-bottom: 24px; }
+    .nav-section-title {
+      font-size: 0.6875rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: rgba(255, 255, 255, 0.5);
+      padding: 0 12px;
+      margin-bottom: 8px;
+    }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 12px 16px;
+      border-radius: 12px;
+      color: rgba(255, 255, 255, 0.8);
+      font-size: 0.9375rem;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      cursor: pointer;
+      margin-bottom: 4px;
+    }
+    .nav-item:hover { background: rgba(255, 255, 255, 0.1); color: white; }
+    .nav-item.active { background: rgba(255, 255, 255, 0.2); color: white; }
+    .nav-item svg { width: 22px; height: 22px; flex-shrink: 0; }
+    .nav-badge {
+      margin-left: auto;
+      background: rgba(255, 255, 255, 0.2);
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 0.75rem;
+    }
+    .sidebar-footer { padding: 16px 20px; border-top: 1px solid rgba(255, 255, 255, 0.1); }
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.1);
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .user-info:hover { background: rgba(255, 255, 255, 0.15); }
+    .user-avatar {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #4ade80, #22c55e);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 700;
+      font-size: 1rem;
+    }
+    .user-details { flex: 1; min-width: 0; }
+    .user-name { font-size: 0.9375rem; font-weight: 600; color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .user-role { font-size: 0.75rem; color: rgba(255, 255, 255, 0.7); }
+
+    /* 主内容区 */
+    .main-wrapper { flex: 1; margin-left: var(--sidebar-width); transition: margin-left 0.3s ease; }
+    .main-wrapper.sidebar-collapsed { margin-left: 0; }
+
+    /* 顶部栏 */
+    .header {
+      height: var(--header-height);
+      background: white;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 28px;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+    .header-left { display: flex; align-items: center; gap: 20px; }
+    .menu-toggle {
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #64748b;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .menu-toggle:hover { background: #f1f5f9; color: #1e293b; }
+    .menu-toggle svg { width: 24px; height: 24px; }
+    .header-title { font-size: 1.125rem; font-weight: 600; color: #1e293b; }
+    .header-breadcrumb { display: flex; align-items: center; gap: 8px; font-size: 0.875rem; color: #64748b; margin-top: 2px; }
+    .header-breadcrumb span { color: #94a3b8; }
+    .header-right { display: flex; align-items: center; gap: 12px; }
+    .header-action {
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #64748b;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+    }
+    .header-action:hover { background: #f1f5f9; color: #1e293b; }
+    .header-action svg { width: 22px; height: 22px; }
+    .notification-dot {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      width: 8px;
+      height: 8px;
+      background: #ef4444;
+      border-radius: 50%;
+      border: 2px solid white;
+    }
+
+    .notification-panel {
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      width: 360px;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+      border: 1px solid #e2e8f0;
+      z-index: 100;
+      display: none;
+      overflow: hidden;
+    }
+    .notification-panel.show { display: block; }
+    .notification-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid #f1f5f9;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .notification-header-title { font-size: 0.9375rem; font-weight: 700; color: #1e293b; }
+    .notification-header-badge {
+      background: #ef4444;
+      color: white;
+      font-size: 0.6875rem;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 10px;
+    }
+    .notification-list { max-height: 360px; overflow-y: auto; }
+    .notification-item {
+      padding: 14px 20px;
+      border-bottom: 1px solid #f8fafc;
+      cursor: pointer;
+      transition: background 0.2s;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    .notification-item:hover { background: #f8fafc; }
+    .notification-item.unread { background: #f0fdf4; }
+    .notification-item-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .notification-item-icon.info { background: rgba(59, 130, 246, 0.1); color: #3b82f6; }
+    .notification-item-icon.success { background: rgba(34, 197, 94, 0.1); color: #22c55e; }
+    .notification-item-icon.warning { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
+    .notification-item-icon svg { width: 18px; height: 18px; }
+    .notification-item-content { flex: 1; min-width: 0; }
+    .notification-item-title { font-size: 0.875rem; font-weight: 600; color: #1e293b; margin-bottom: 3px; }
+    .notification-item-text { font-size: 0.75rem; color: #64748b; line-height: 1.4; margin-bottom: 4px; }
+    .notification-item-time { font-size: 0.6875rem; color: #94a3b8; }
+    .notification-footer {
+      display: flex;
+      align-items: center;
+      border-top: 1px solid #f1f5f9;
+    }
+    .notification-footer-btn {
+      flex: 1;
+      padding: 12px 20px;
+      text-align: center;
+      font-size: 0.8125rem;
+      color: #22c55e;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .notification-footer-btn:hover { background: #f8fafc; }
+    .notification-footer-divider {
+      width: 1px;
+      height: 20px;
+      background: #f1f5f9;
+    }
+    .notification-empty { padding: 40px 20px; text-align: center; color: #94a3b8; font-size: 0.875rem; }
+
+    /* 全部通知弹窗 */
+    .all-notif-mask {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 200;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .all-notif-mask.show { display: flex; }
+    .all-notif-modal {
+      background: white;
+      border-radius: 20px;
+      max-width: 560px;
+      width: 100%;
+      max-height: 80vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+      overflow: hidden;
+    }
+    .all-notif-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid #f1f5f9;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+    }
+    .all-notif-title { font-size: 1.125rem; font-weight: 700; color: #1e293b; }
+    .all-notif-close {
+      width: 32px; height: 32px;
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      color: #64748b;
+      transition: all 0.2s;
+    }
+    .all-notif-close:hover { background: rgba(0,0,0,0.05); color: #1e293b; }
+    .all-notif-close svg { width: 20px; height: 20px; }
+    .all-notif-body { flex: 1; overflow-y: auto; padding: 8px 0; }
+    .all-notif-item {
+      padding: 16px 24px;
+      border-bottom: 1px solid #f8fafc;
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      transition: background 0.2s;
+    }
+    .all-notif-item:hover { background: #f8fafc; }
+    .all-notif-item.unread { background: #f0fdf4; }
+    .all-notif-item-icon {
+      width: 40px; height: 40px;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .all-notif-item-icon.info { background: rgba(59, 130, 246, 0.1); color: #3b82f6; }
+    .all-notif-item-icon.success { background: rgba(34, 197, 94, 0.1); color: #22c55e; }
+    .all-notif-item-icon.warning { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
+    .all-notif-item-icon svg { width: 20px; height: 20px; }
+    .all-notif-item-content { flex: 1; min-width: 0; }
+    .all-notif-item-title { font-size: 0.9375rem; font-weight: 600; color: #1e293b; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
+    .all-notif-unread-dot { width: 8px; height: 8px; background: #22c55e; border-radius: 50%; flex-shrink: 0; }
+    .all-notif-item-text { font-size: 0.8125rem; color: #64748b; line-height: 1.5; margin-bottom: 6px; }
+    .all-notif-item-time { font-size: 0.75rem; color: #94a3b8; }
+    .all-notif-footer {
+      padding: 14px 24px;
+      border-top: 1px solid #f1f5f9;
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+    .all-notif-footer-btn {
+      padding: 8px 18px;
+      border-radius: 8px;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .all-notif-footer-btn.primary { background: #22c55e; color: white; }
+    .all-notif-footer-btn.primary:hover { background: #16a34a; }
+    .all-notif-footer-btn.secondary { background: #f1f5f9; color: #64748b; }
+    .all-notif-footer-btn.secondary:hover { background: #e2e8f0; color: #1e293b; }
+
+    .about-modal-mask {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 200;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .about-modal-mask.show { display: flex; }
+    .about-modal {
+      background: white;
+      border-radius: 20px;
+      max-width: 480px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+      overflow: hidden;
+    }
+    .about-modal-header {
+      padding: 32px 28px 20px;
+      text-align: center;
+      background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+      position: relative;
+    }
+    .about-modal-close {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: #64748b;
+      transition: all 0.2s;
+    }
+    .about-modal-close:hover { background: rgba(0,0,0,0.05); color: #1e293b; }
+    .about-modal-close svg { width: 20px; height: 20px; }
+    .about-modal-logo {
+      width: 72px;
+      height: 72px;
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 16px;
+      box-shadow: 0 8px 24px rgba(34,197,94,0.3);
+    }
+    .about-modal-logo svg { width: 36px; height: 36px; color: white; }
+    .about-modal-title { font-size: 1.25rem; font-weight: 700; color: #1e293b; margin-bottom: 4px; }
+    .about-modal-version { font-size: 0.875rem; color: #22c55e; font-weight: 600; }
+    .about-modal-body { padding: 24px 28px; }
+    .about-modal-desc { font-size: 0.875rem; color: #64748b; line-height: 1.7; margin-bottom: 20px; text-align: center; }
+    .about-info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px; }
+    .about-info-item {
+      background: #f8fafc;
+      border-radius: 12px;
+      padding: 14px;
+      text-align: center;
+    }
+    .about-info-label { font-size: 0.6875rem; color: #94a3b8; margin-bottom: 4px; }
+    .about-info-value { font-size: 0.9375rem; font-weight: 600; color: #1e293b; }
+    .about-modal-links { display: flex; gap: 10px; }
+    .about-modal-link {
+      flex: 1;
+      padding: 12px;
+      text-align: center;
+      border-radius: 10px;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: #64748b;
+      background: #f1f5f9;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .about-modal-link:hover { background: #e2e8f0; color: #1e293b; }
+    .about-modal-link.primary { background: linear-gradient(135deg, #22c55e, #16a34a); color: white; }
+    .about-modal-link.primary:hover { opacity: 0.9; }
+
+    /* 页面内容 */
+    .page-content { padding: 28px; }
+    .page-header { margin-bottom: 28px; }
+    .page-title { font-size: 1.75rem; font-weight: 700; color: #1e293b; letter-spacing: -0.025em; margin-bottom: 8px; }
+    .page-subtitle { font-size: 0.9375rem; color: #64748b; }
+
+    /* 统计卡片 */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+      margin-bottom: 28px;
+    }
+    .stat-card {
+      background: white;
+      border-radius: var(--card-radius);
+      padding: 24px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+      border: 1px solid #e2e8f0;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--color-primary, #22c55e), var(--color-secondary, #14b8a6));
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .stat-card:hover { transform: translateY(-4px); box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08); }
+    .stat-card:hover::before { opacity: 1; }
+    .stat-icon {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 18px;
+    }
+    .stat-icon svg { width: 26px; height: 26px; }
+    .stat-icon.primary { background: rgba(34, 197, 94, 0.1); color: #22c55e; }
+    .stat-icon.secondary { background: rgba(20, 184, 166, 0.1); color: #14b8a6; }
+    .stat-icon.warning { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
+    .stat-icon.info { background: rgba(59, 130, 246, 0.1); color: #3b82f6; }
+    .stat-value { font-size: 2.25rem; font-weight: 700; color: #1e293b; line-height: 1; margin-bottom: 6px; }
+    .stat-label { font-size: 0.875rem; color: #64748b; font-weight: 500; }
+
+    /* 功能卡片 */
+    .features-section { margin-bottom: 28px; }
+    .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+    .section-title { font-size: 1.125rem; font-weight: 700; color: #1e293b; }
+    .section-link { font-size: 0.875rem; color: #22c55e; font-weight: 600; display: flex; align-items: center; gap: 4px; }
+    .section-link:hover { color: #16a34a; }
+    .section-link svg { width: 16px; height: 16px; }
+    .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+    .feature-card {
+      background: white;
+      border-radius: var(--card-radius);
+      padding: 28px;
+      border: 1px solid #e2e8f0;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+    .feature-card:hover { transform: translateY(-4px); box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08); border-color: #22c55e; }
+    .feature-icon {
+      width: 60px;
+      height: 60px;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+    .feature-icon svg { width: 30px; height: 30px; }
+    .feature-icon.primary { background: linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(34, 197, 94, 0.05)); color: #22c55e; }
+    .feature-icon.secondary { background: linear-gradient(135deg, rgba(20, 184, 166, 0.15), rgba(20, 184, 166, 0.05)); color: #14b8a6; }
+    .feature-icon.info { background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(59, 130, 246, 0.05)); color: #3b82f6; }
+    .feature-title { font-size: 1.0625rem; font-weight: 700; color: #1e293b; margin-bottom: 8px; }
+    .feature-description { font-size: 0.875rem; color: #64748b; line-height: 1.6; margin-bottom: 16px; }
+    .feature-link { font-size: 0.875rem; color: #22c55e; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+    .feature-link svg { width: 16px; height: 16px; transition: transform 0.2s; }
+    .feature-card:hover .feature-link svg { transform: translateX(4px); }
+
+    /* 最近记录 */
+    .records-section { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+    .record-card {
+      background: white;
+      border-radius: var(--card-radius);
+      padding: 24px;
+      border: 1px solid #e2e8f0;
+    }
+    .record-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+    .record-title { font-size: 1rem; font-weight: 700; color: #1e293b; }
+    .record-list { display: flex; flex-direction: column; gap: 14px; }
+    .record-item { display: flex; align-items: center; gap: 14px; padding: 12px; border-radius: 12px; transition: background 0.2s; cursor: pointer; }
+    .record-item:hover { background: #f8fafc; }
+    .record-thumb {
+      width: 48px;
+      height: 48px;
+      border-radius: 10px;
+      background: #f1f5f9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+    .record-thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .record-thumb svg { width: 22px; height: 22px; color: #94a3b8; }
+    .record-info { flex: 1; min-width: 0; }
+    .record-name { font-size: 0.875rem; font-weight: 600; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .record-meta { font-size: 0.75rem; color: #94a3b8; margin-top: 2px; }
+    .record-badge { padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; }
+    .record-badge.success { background: rgba(34, 197, 94, 0.1); color: #16a34a; }
+    .empty-state { text-align: center; padding: 40px 20px; color: #94a3b8; }
+    .empty-state svg { width: 48px; height: 48px; margin-bottom: 12px; opacity: 0.5; }
+    .empty-state p { font-size: 0.875rem; }
+
+    /* 响应式 */
+    @media (max-width: 1200px) {
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .features-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 900px) {
+      .sidebar { transform: translateX(-100%); }
+      .sidebar.open { transform: translateX(0); }
+      .main-wrapper { margin-left: 0; }
+      .records-section { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 640px) {
+      .stats-grid { grid-template-columns: 1fr; }
+      .features-grid { grid-template-columns: 1fr; }
+      .page-content { padding: 20px; }
+      .header { padding: 0 16px; }
+    }
+
+    /* 完善用户信息弹窗 */
+    .profile-modal-mask {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+    }
+    .profile-modal-mask.show {
+      opacity: 1;
+      visibility: visible;
+    }
+    .profile-modal {
+      background: white;
+      border-radius: 24px;
+      width: 90%;
+      max-width: 480px;
+      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+      transform: scale(0.95) translateY(20px);
+      transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+      overflow: hidden;
+    }
+    .profile-modal-mask.show .profile-modal {
+      transform: scale(1) translateY(0);
+    }
+    .profile-modal-header {
+      padding: 32px 32px 24px;
+      text-align: center;
+      background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+    }
+    .profile-modal-icon {
+      width: 64px;
+      height: 64px;
+      margin: 0 auto 16px;
+      background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      box-shadow: 0 8px 24px rgba(34, 197, 94, 0.3);
+    }
+    .profile-modal-icon svg {
+      width: 32px;
+      height: 32px;
+    }
+    .profile-modal-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #1e293b;
+      margin-bottom: 8px;
+    }
+    .profile-modal-desc {
+      font-size: 0.875rem;
+      color: #64748b;
+    }
+    .profile-modal-body {
+      padding: 24px 32px;
+    }
+    .profile-form-group {
+      margin-bottom: 16px;
+    }
+    .profile-form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .profile-form-label {
+      display: block;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #1e293b;
+      margin-bottom: 8px;
+    }
+    .profile-form-label .required {
+      color: #ef4444;
+      margin-left: 2px;
+    }
+    .profile-form-input,
+    .profile-form-select {
+      width: 100%;
+      padding: 12px 16px;
+      font-size: 0.9375rem;
+      color: #1e293b;
+      background: #f8fafc;
+      border: 2px solid transparent;
+      border-radius: 12px;
+      transition: all 0.2s ease;
+      outline: none;
+      box-sizing: border-box;
+    }
+    .profile-form-input:focus,
+    .profile-form-select:focus {
+      background: white;
+      border-color: #22c55e;
+      box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.1);
+    }
+    .profile-form-select {
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      cursor: pointer;
+    }
+    .profile-modal-tip {
+      font-size: 0.8125rem;
+      color: #64748b;
+      margin-top: 8px;
+      padding: 12px;
+      background: #f8fafc;
+      border-radius: 10px;
+    }
+    .profile-modal-footer {
+      padding: 20px 32px 28px;
+      display: flex;
+      gap: 12px;
+    }
+    .profile-btn {
+      flex: 1;
+      padding: 14px 24px;
+      font-size: 0.9375rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .profile-btn-secondary {
+      background: #f1f5f9;
+      color: #64748b;
+    }
+    .profile-btn-secondary:hover {
+      background: #e2e8f0;
+      color: #475569;
+    }
+    .profile-btn-primary {
+      background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+      color: white;
+      box-shadow: 0 4px 14px rgba(34, 197, 94, 0.3);
+    }
+    .profile-btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(34, 197, 94, 0.4);
+    }
+    .profile-btn-primary:active {
+      transform: translateY(0);
+    }
+    @media (max-width: 500px) {
+      .profile-modal-header { padding: 24px 24px 20px; }
+      .profile-modal-body { padding: 20px 24px; }
+      .profile-modal-footer { padding: 16px 24px 24px; }
+      .profile-form-row { grid-template-columns: 1fr; gap: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <!-- 侧边栏 -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">
+          <div class="sidebar-logo-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+              <path d="M2 17l10 5 10-5"/>
+              <path d="M2 12l10 5 10-5"/>
+            </svg>
+          </div>
+          <div class="sidebar-logo-text">
+            <div class="sidebar-logo-title">CropDisease</div>
+            <div class="sidebar-logo-subtitle">农作物病害识别系统</div>
+          </div>
+        </div>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section">
+          <div class="nav-section-title">主菜单</div>
+          <a href="/dashboard" class="nav-item active">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+              <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+            </svg>
+            <span>仪表盘</span>
+          </a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-title">智能检测</div>
+          <a href="/img-predict" class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+              <circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+            </svg>
+            <span>图片预测</span>
+          </a>
+          <a href="/video-predict" class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+            </svg>
+            <span>视频预测</span>
+          </a>
+          <a href="/camera-predict" class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+              <circle cx="12" cy="13" r="4"/>
+            </svg>
+            <span>摄像头预测</span>
+          </a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-title">历史记录</div>
+          <a href="/img-records" class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/>
+              <line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
+            </svg>
+            <span>图片记录</span>
+          </a>
+          <a href="/video-records" class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+            </svg>
+            <span>视频记录</span>
+          </a>
+          <a href="/camera-records" class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+              <circle cx="12" cy="13" r="4"/>
+            </svg>
+            <span>摄像头记录</span>
+          </a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-title">系统管理</div>
+          <a href="/user-manage" class="nav-item" id="navUserManage" style="display: none;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+            <span>用户管理</span>
+          </a>
+          <a href="/settings" class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+            <span>系统设置</span>
+          </a>
+          <a href="/personal" class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg>
+            <span>个人中心</span>
+          </a>
+        </div>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-info" onclick="Utils.logout()">
+          <div class="user-avatar" id="userAvatar">管</div>
+          <div class="user-details">
+            <div class="user-name" id="userName">管理员</div>
+            <div class="user-role" id="userRole">管理员</div>
+          </div>
+          <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="2" width="18" height="18">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+            <polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
+        </div>
+      </div>
+    </aside>
+
+    <!-- 主内容区 -->
+    <div class="main-wrapper" id="mainWrapper">
+      <!-- 顶部栏 -->
+      <header class="header">
+        <div class="header-left">
+          <div class="menu-toggle" id="menuToggle">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/>
+            </svg>
+          </div>
+          <div>
+            <h1 class="header-title">仪表盘</h1>
+            <div class="header-breadcrumb">
+              <span>首页</span> / <span>仪表盘</span>
+            </div>
+          </div>
+        </div>
+        <div class="header-right">
+          <div class="header-action" id="notificationBtn" onclick="toggleNotifications(event)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+            </svg>
+            <div class="notification-dot" id="notificationDot"></div>
+            <div class="notification-panel" id="notificationPanel">
+              <div class="notification-header">
+                <span class="notification-header-title">通知中心</span>
+                <span class="notification-header-badge" id="notificationBadge">0条未读</span>
+              </div>
+              <div class="notification-list" id="notificationList">
+                <div class="notification-empty">加载中...</div>
+              </div>
+              <div class="notification-footer">
+                <div class="notification-footer-btn" onclick="markAllAsRead()">全部标为已读</div>
+                <div class="notification-footer-divider"></div>
+                <div class="notification-footer-btn" onclick="openAllNotifications()">查看全部通知</div>
+              </div>
+            </div>
+          </div>
+          <div class="header-action" onclick="openAboutModal()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+          </div>
+        </div>
+      </header>
+
+      <!-- 页面内容 -->
+      <main class="page-content">
+        <div class="page-header">
+          <h2 class="page-title">欢迎回来</h2>
+          <p class="page-subtitle">以下是您的检测统计数据概览</p>
+        </div>
+
+        <!-- 统计卡片 -->
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon primary">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                <circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+              </svg>
+            </div>
+            <div class="stat-value" id="imgCount">0</div>
+            <div class="stat-label">图片检测次数</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon secondary">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+              </svg>
+            </div>
+            <div class="stat-value" id="videoCount">0</div>
+            <div class="stat-label">视频检测次数</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon warning">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                <circle cx="12" cy="13" r="4"/>
+              </svg>
+            </div>
+            <div class="stat-value" id="cameraCount">0</div>
+            <div class="stat-label">摄像头检测次数</div>
+          </div>
+          <div class="stat-card" id="statCardUsers">
+            <div class="stat-icon info">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+              </svg>
+            </div>
+            <div class="stat-value" id="userCount">0</div>
+            <div class="stat-label">注册用户数</div>
+          </div>
+        </div>
+
+        <!-- 功能卡片 -->
+        <div class="features-section">
+          <div class="section-header">
+            <h3 class="section-title">快速开始</h3>
+          </div>
+          <div class="features-grid">
+            <a href="/img-predict" class="feature-card">
+              <div class="feature-icon primary">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                  <circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+                </svg>
+              </div>
+              <h4 class="feature-title">图片识别</h4>
+              <p class="feature-description">上传农作物叶片图片，AI将自动识别病害类型并提供诊断结果。</p>
+              <div class="feature-link">
+                开始使用
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+                </svg>
+              </div>
+            </a>
+            <a href="/video-predict" class="feature-card">
+              <div class="feature-icon secondary">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+                </svg>
+              </div>
+              <h4 class="feature-title">视频分析</h4>
+              <p class="feature-description">上传农田视频文件，系统将逐帧分析并标注出病害区域。</p>
+              <div class="feature-link">
+                开始使用
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+                </svg>
+              </div>
+            </a>
+            <a href="/camera-predict" class="feature-card">
+              <div class="feature-icon info">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                  <circle cx="12" cy="13" r="4"/>
+                </svg>
+              </div>
+              <h4 class="feature-title">实时监测</h4>
+              <p class="feature-description">连接摄像头进行实时监测，即时发现并标注病害情况。</p>
+              <div class="feature-link">
+                开始使用
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+                </svg>
+              </div>
+            </a>
+          </div>
+        </div>
+
+        <!-- 最近记录 -->
+        <div class="records-section">
+          <div class="record-card">
+            <div class="record-header">
+              <h3 class="record-title">最近图片检测</h3>
+              <a href="/img-records" class="section-link">
+                查看全部
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="9 18 15 12 9 6"/>
+                </svg>
+              </a>
+            </div>
+            <div class="record-list" id="recentImgRecords">
+              <div class="empty-state">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                  <circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+                </svg>
+                <p>暂无检测记录</p>
+              </div>
+            </div>
+          </div>
+          <div class="record-card">
+            <div class="record-header">
+              <h3 class="record-title">最近视频检测</h3>
+              <a href="/video-records" class="section-link">
+                查看全部
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="9 18 15 12 9 6"/>
+                </svg>
+              </a>
+            </div>
+            <div class="record-list" id="recentVideoRecords">
+              <div class="empty-state">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+                </svg>
+                <p>暂无检测记录</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- 全部通知弹窗 -->
+  <div class="all-notif-mask" id="allNotifModal">
+    <div class="all-notif-modal">
+      <div class="all-notif-header">
+        <span class="all-notif-title">全部通知</span>
+        <div class="all-notif-close" onclick="closeAllNotifications()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </div>
+      </div>
+      <div class="all-notif-body" id="allNotifBody">
+        <div class="notification-empty">加载中...</div>
+      </div>
+      <div class="all-notif-footer">
+        <div class="all-notif-footer-btn secondary" onclick="closeAllNotifications()">关闭</div>
+        <div class="all-notif-footer-btn primary" onclick="markAllAsRead(); closeAllNotifications();">全部标为已读</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 关于弹窗 -->
+  <div class="about-modal-mask" id="aboutModal">
+    <div class="about-modal">
+      <div class="about-modal-header">
+        <div class="about-modal-close" onclick="closeAboutModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </div>
+        <div class="about-modal-logo">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+            <path d="M2 17l10 5 10-5"/>
+            <path d="M2 12l10 5 10-5"/>
+          </svg>
+        </div>
+        <h3 class="about-modal-title" id="aboutTitle">农作物病害识别系统</h3>
+        <p class="about-modal-version" id="aboutVersion">版本 2.2.0</p>
+      </div>
+      <div class="about-modal-body">
+        <p class="about-modal-desc" id="aboutDesc">基于深度学习YOLO模型开发的智能农作物病害识别系统，支持图片、视频和实时摄像头检测。</p>
+        <div class="about-info-grid">
+          <div class="about-info-item">
+            <div class="about-info-label">技术框架</div>
+            <div class="about-info-value">Flask + YOLOv8</div>
+          </div>
+          <div class="about-info-item">
+            <div class="about-info-label">数据库</div>
+            <div class="about-info-value">SQLite</div>
+          </div>
+          <div class="about-info-item">
+            <div class="about-info-label">支持病害</div>
+            <div class="about-info-value">13 种</div>
+          </div>
+          <div class="about-info-item">
+            <div class="about-info-label">支持作物</div>
+            <div class="about-info-value">3 种</div>
+          </div>
+        </div>
+        <div class="about-modal-links">
+          <div class="about-modal-link" onclick="window.location.href='/settings'">系统设置</div>
+          <div class="about-modal-link primary" onclick="closeAboutModal()">我知道了</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 完善用户信息弹窗 -->
+  <div class="profile-modal-mask" id="profileModal">
+    <div class="profile-modal">
+      <div class="profile-modal-header">
+        <div class="profile-modal-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+            <circle cx="12" cy="7" r="4"/>
+          </svg>
+        </div>
+        <h3 class="profile-modal-title">完善您的个人信息</h3>
+        <p class="profile-modal-desc">为了给您提供更好的服务，请完善以下信息</p>
+      </div>
+      <div class="profile-modal-body">
+        <div class="profile-form-group">
+          <label class="profile-form-label">姓名 <span class="required">*</span></label>
+          <input type="text" class="profile-form-input" id="profileName" placeholder="请输入您的姓名">
+        </div>
+        <div class="profile-form-row">
+          <div class="profile-form-group">
+            <label class="profile-form-label">性别 <span class="required">*</span></label>
+            <select class="profile-form-select" id="profileSex">
+              <option value="男">男</option>
+              <option value="女">女</option>
+            </select>
+          </div>
+          <div class="profile-form-group">
+            <label class="profile-form-label">电话 <span class="required">*</span></label>
+            <input type="text" class="profile-form-input" id="profileTel" placeholder="请输入手机号">
+          </div>
+        </div>
+        <div class="profile-form-group">
+          <label class="profile-form-label">邮箱 <span class="required">*</span></label>
+          <input type="email" class="profile-form-input" id="profileEmail" placeholder="请输入邮箱地址">
+        </div>
+        <p class="profile-modal-tip">💡 这些信息仅用于账号管理和系统通知，我们会严格保护您的隐私</p>
+      </div>
+      <div class="profile-modal-footer">
+        <button class="profile-btn profile-btn-secondary" id="profileSkipBtn" onclick="skipProfileModal()">稍后再说</button>
+        <button class="profile-btn profile-btn-primary" id="profileSaveBtn" onclick="saveProfileInfo()">保存信息</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/js/common.js"></script>
+  <script>
+    // 检查登录
+    if (!Utils.requireAuth()) {}
+
+    // 侧边栏切换
+    const sidebar = document.getElementById('sidebar');
+    const mainWrapper = document.getElementById('mainWrapper');
+    const menuToggle = document.getElementById('menuToggle');
+
+    menuToggle.addEventListener('click', function() {
+      sidebar.classList.toggle('open');
+      mainWrapper.classList.toggle('sidebar-collapsed');
+    });
+
+    // 加载用户信息
+    async function loadUserInfo() {
+      try {
+        const res = await Utils.apiGet('/api/user/me');
+        if (res.code === 0) {
+          const user = res.data;
+          document.getElementById('userName').textContent = user.name || user.username;
+          document.getElementById('userRole').textContent = user.role === 'admin' ? '管理员' : '普通用户';
+          document.getElementById('userAvatar').textContent = (user.name || user.username).charAt(0);
+          if (user.role === 'admin') {
+            document.getElementById('navUserManage').style.display = 'flex';
+          } else {
+            document.getElementById('statCardUsers').style.display = 'none';
+          }
+          if (!user.profile_complete) {
+            const skipped = sessionStorage.getItem('profileSkipped');
+            if (!skipped) {
+              document.getElementById('profileName').value = user.name || '';
+              document.getElementById('profileSex').value = user.sex || '男';
+              document.getElementById('profileTel').value = user.tel || '';
+              document.getElementById('profileEmail').value = user.email || '';
+              setTimeout(() => {
+                document.getElementById('profileModal').classList.add('show');
+              }, 500);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('获取用户信息失败:', error);
+      }
+    }
+
+    function skipProfileModal() {
+      sessionStorage.setItem('profileSkipped', 'true');
+      document.getElementById('profileModal').classList.remove('show');
+    }
+
+    async function saveProfileInfo() {
+      const name = document.getElementById('profileName').value.trim();
+      const sex = document.getElementById('profileSex').value;
+      const tel = document.getElementById('profileTel').value.trim();
+      const email = document.getElementById('profileEmail').value.trim();
+
+      if (!name) {
+        Utils.showToast('提示', '请输入姓名', 'warning');
+        return;
+      }
+      if (!tel) {
+        Utils.showToast('提示', '请输入电话', 'warning');
+        return;
+      }
+      if (!/^1[3-9]\d{9}$/.test(tel)) {
+        Utils.showToast('提示', '请输入正确的手机号', 'warning');
+        return;
+      }
+      if (!email) {
+        Utils.showToast('提示', '请输入邮箱', 'warning');
+        return;
+      }
+      if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email)) {
+        Utils.showToast('提示', '请输入正确的邮箱格式', 'warning');
+        return;
+      }
+
+      const saveBtn = document.getElementById('profileSaveBtn');
+      saveBtn.disabled = true;
+      saveBtn.textContent = '保存中...';
+
+      try {
+        const username = Utils.TokenManager.getUsername();
+        const res = await Utils.apiPost('/api/user/update', {
+          username,
+          name,
+          sex,
+          tel,
+          email
+        });
+
+        if (res.code === 0) {
+          Utils.showToast('成功', '个人信息已保存', 'success');
+          document.getElementById('profileModal').classList.remove('show');
+          sessionStorage.removeItem('profileSkipped');
+          loadUserInfo();
+        } else {
+          Utils.showToast('错误', res.message || '保存失败', 'error');
+        }
+      } catch (error) {
+        Utils.showToast('错误', '保存失败，请稍后重试', 'error');
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = '保存信息';
+      }
+    }
+
+    // 加载统计数据
+    async function loadStats() {
+      try {
+        const stats = await Utils.fetchStats();
+        document.getElementById('imgCount').textContent = stats.img_count || 0;
+        document.getElementById('videoCount').textContent = stats.video_count || 0;
+        document.getElementById('cameraCount').textContent = stats.camera_count || 0;
+        document.getElementById('userCount').textContent = stats.user_count || 0;
+      } catch (error) {
+        console.error('获取统计数据失败:', error);
+      }
+    }
+
+    // 加载最近记录
+    async function loadRecentRecords() {
+      try {
+        const [imgRes, videoRes] = await Promise.all([
+          Utils.apiGet('/api/imgRecords'),
+          Utils.apiGet('/api/videoRecords')
+        ]);
+
+        // 渲染最近图片记录
+        const imgList = document.getElementById('recentImgRecords');
+        if (imgRes.code === 0 && imgRes.data.length > 0) {
+          imgList.innerHTML = imgRes.data.slice(0, 5).map(record => `
+            <div class="record-item" onclick="window.location.href='/img-records'">
+              <div class="record-thumb">
+                <img src="${Utils.fileUrl(record.out_img)}" alt="缩略图" onerror="this.style.display='none';this.nextElementSibling.style.display='block';" />
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                  <circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+                </svg>
+              </div>
+              <div class="record-info">
+                <div class="record-name">${Utils.escapeHtml(record.label || '未知病害')}</div>
+                <div class="record-meta">${Utils.escapeHtml(Utils.formatRelativeTime(record.start_time))} · ${Utils.escapeHtml(record.all_time || '-')}</div>
+              </div>
+              <span class="record-badge success">已完成</span>
+            </div>
+          `).join('');
+        }
+
+        // 渲染最近视频记录
+        const videoList = document.getElementById('recentVideoRecords');
+        if (videoRes.code === 0 && videoRes.data.length > 0) {
+          videoList.innerHTML = videoRes.data.slice(0, 5).map(record => `
+            <div class="record-item" onclick="window.location.href='/video-records'">
+              <div class="record-thumb">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+                </svg>
+              </div>
+              <div class="record-info">
+                <div class="record-name">视频检测记录</div>
+                <div class="record-meta">${Utils.escapeHtml(Utils.formatRelativeTime(record.start_time))} · ${Utils.escapeHtml(record.weight || '-')}</div>
+              </div>
+              <span class="record-badge success">已完成</span>
+            </div>
+          `).join('');
+        }
+      } catch (error) {
+        console.error('获取记录失败:', error);
+      }
+    }
+
+    // 通知功能
+    let notificationsLoaded = false;
+
+    function toggleNotifications(event) {
+      event.stopPropagation();
+      const panel = document.getElementById('notificationPanel');
+      panel.classList.toggle('show');
+      if (panel.classList.contains('show') && !notificationsLoaded) {
+        loadNotifications();
+      }
+    }
+
+    document.addEventListener('click', (e) => {
+      const panel = document.getElementById('notificationPanel');
+      const btn = document.getElementById('notificationBtn');
+      if (panel && !panel.contains(e.target) && !btn.contains(e.target)) {
+        panel.classList.remove('show');
+      }
+    });
+
+    async function loadNotifications() {
+      notificationsLoaded = true;
+      const list = document.getElementById('notificationList');
+      try {
+        const res = await Utils.apiGet('/api/notifications');
+        if (res.code === 0) {
+          const readIds = getReadNotificationIds();
+          const notifications = res.data.map(n => ({
+            ...n,
+            read: n.read || readIds.has(String(n.id))
+          }));
+          renderNotifications(notifications);
+          const unreadCount = notifications.filter(n => !n.read).length;
+          updateNotificationBadge(unreadCount);
+        } else {
+          list.innerHTML = `<div class="notification-empty" style="color: #ef4444;">${Utils.escapeHtml(res.message || '加载失败')}</div>`;
+        }
+      } catch (error) {
+        console.error('加载通知失败:', error);
+        list.innerHTML = '<div class="notification-empty" style="color: #ef4444;">加载失败，请重试</div>';
+      }
+    }
+
+    function getReadNotificationIds() {
+      try {
+        const ids = localStorage.getItem('notification_read_ids');
+        return new Set(ids ? JSON.parse(ids) : []);
+      } catch {
+        return new Set();
+      }
+    }
+
+    function saveReadNotificationIds(ids) {
+      try {
+        localStorage.setItem('notification_read_ids', JSON.stringify([...ids]));
+      } catch {}
+    }
+
+    function renderNotifications(notifications) {
+      const list = document.getElementById('notificationList');
+      if (!notifications || notifications.length === 0) {
+        list.innerHTML = '<div class="notification-empty">暂无通知</div>';
+        return;
+      }
+
+      const iconMap = {
+        info: '<path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>',
+        success: '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>',
+        warning: '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>'
+      };
+
+      list.innerHTML = notifications.map(n => `
+        <div class="notification-item ${n.read ? '' : 'unread'}" data-id="${n.id}">
+          <div class="notification-item-icon ${n.type}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              ${iconMap[n.type] || iconMap.info}
+            </svg>
+          </div>
+          <div class="notification-item-content">
+            <div class="notification-item-title">${Utils.escapeHtml(n.title)}</div>
+            <div class="notification-item-text">${Utils.escapeHtml(n.content)}</div>
+            <div class="notification-item-time">${Utils.escapeHtml(n.time)}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function updateNotificationBadge(count) {
+      const dot = document.getElementById('notificationDot');
+      const badge = document.getElementById('notificationBadge');
+      badge.textContent = count + '条未读';
+      if (count > 0) {
+        dot.style.display = 'block';
+      } else {
+        dot.style.display = 'none';
+      }
+    }
+
+    async function markAllAsRead() {
+      try {
+        await Utils.apiPost('/api/notifications/read', {});
+      } catch (error) {
+        console.error('标记已读失败:', error);
+      }
+      const readIds = getReadNotificationIds();
+      document.querySelectorAll('.notification-item').forEach(item => {
+        const id = item.dataset.id;
+        if (id) {
+          readIds.add(String(id));
+          item.classList.remove('unread');
+        }
+      });
+      allNotifData.forEach(n => { n.read = true; });
+      if (allNotifData.length) renderAllNotifications(allNotifData);
+      saveReadNotificationIds(readIds);
+      updateNotificationBadge(0);
+      Utils.showToast('已将所有通知标为已读', 'success');
+    }
+
+    // 全部通知弹窗
+    let allNotifData = [];
+
+    async function openAllNotifications() {
+      document.getElementById('notificationPanel').classList.remove('show');
+      document.getElementById('allNotifModal').classList.add('show');
+      const body = document.getElementById('allNotifBody');
+      body.innerHTML = '<div class="notification-empty">加载中...</div>';
+      try {
+        const res = await Utils.apiGet('/api/notifications');
+        if (res.code === 0) {
+          const readIds = getReadNotificationIds();
+          allNotifData = res.data.map(n => ({
+            ...n,
+            read: n.read || readIds.has(String(n.id))
+          }));
+          renderAllNotifications(allNotifData);
+        } else {
+          body.innerHTML = `<div class="notification-empty" style="color: #ef4444;">${Utils.escapeHtml(res.message || '加载失败')}</div>`;
+        }
+      } catch (error) {
+        console.error('加载全部通知失败:', error);
+        body.innerHTML = '<div class="notification-empty" style="color: #ef4444;">加载失败，请重试</div>';
+      }
+    }
+
+    function renderAllNotifications(notifications) {
+      const body = document.getElementById('allNotifBody');
+      if (!notifications || notifications.length === 0) {
+        body.innerHTML = '<div class="notification-empty">暂无通知</div>';
+        return;
+      }
+
+      const iconMap = {
+        info: '<path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>',
+        success: '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>',
+        warning: '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>'
+      };
+
+      body.innerHTML = notifications.map(n => `
+        <div class="all-notif-item ${n.read ? '' : 'unread'}" data-id="${n.id}">
+          <div class="all-notif-item-icon ${n.type}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              ${iconMap[n.type] || iconMap.info}
+            </svg>
+          </div>
+          <div class="all-notif-item-content">
+            <div class="all-notif-item-title">
+              ${Utils.escapeHtml(n.title)}
+              ${!n.read ? '<div class="all-notif-unread-dot"></div>' : ''}
+            </div>
+            <div class="all-notif-item-text">${Utils.escapeHtml(n.content)}</div>
+            <div class="all-notif-item-time">${Utils.escapeHtml(n.time)}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function closeAllNotifications() {
+      document.getElementById('allNotifModal').classList.remove('show');
+    }
+
+    document.getElementById('allNotifModal').addEventListener('click', (e) => {
+      if (e.target.id === 'allNotifModal') {
+        closeAllNotifications();
+      }
+    });
+
+    // 关于弹窗
+    function openAboutModal() {
+      document.getElementById('aboutModal').classList.add('show');
+    }
+
+    function closeAboutModal() {
+      document.getElementById('aboutModal').classList.remove('show');
+    }
+
+    document.getElementById('aboutModal').addEventListener('click', (e) => {
+      if (e.target.id === 'aboutModal') {
+        closeAboutModal();
+      }
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeAboutModal();
+        closeAllNotifications();
+      }
+    });
+
+    // 初始化
+    document.addEventListener('DOMContentLoaded', function() {
+      loadUserInfo();
+      loadStats();
+      loadRecentRecords();
+    });
+  </script>
+</body>
+</html>
