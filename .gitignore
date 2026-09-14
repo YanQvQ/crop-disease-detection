@@ -1,0 +1,29 @@
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ---- 环境与密钥 ----
+.env
+
+# ---- 运行时生成 ----
+instance/
+files/
+runs/
+app.log
+
+# ---- 模型权重（体积大，不入仓库） ----
+weights/*.pt
+yolov8n.pt
+yolov8n.yaml
+
+# ---- 上传/临时 ----
+*.tmp
+.DS_Store
+
+# ---- 编辑器 ----
+.vscode/
+.idea/

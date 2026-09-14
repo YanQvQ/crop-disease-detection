@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/css/common.css">
+  <link rel="stylesheet" href="/static/css/sidebar.css?v=1">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Inter', 'PingFang SC', 'Microsoft YaHei', sans-serif; background: #f0fdf4; }
@@ -15,7 +16,7 @@
     .app-container { display: flex; min-height: 100vh; }
     .sidebar { width: 280px; background: linear-gradient(180deg, #14532d 0%, #166534 50%, #15803d 100%); position: fixed; top: 0; left: 0; bottom: 0; display: flex; flex-direction: column; z-index: 100; transition: transform 0.3s ease; }
     .sidebar.collapsed { transform: translateX(-100%); }
-    .sidebar-header { padding: 24px 24px 20px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+    .main-wrapper.sidebar-collapsed { margin-left: 0; }
     .sidebar-logo { display: flex; align-items: center; gap: 14px; }
     .sidebar-logo-icon { width: 48px; height: 48px; background: rgba(255,255,255,0.15); border-radius: 14px; display: flex; align-items: center; justify-content: center; }
     .sidebar-logo-icon svg { width: 28px; height: 28px; color: white; }
@@ -51,7 +52,12 @@
     .records-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 20px; }
     .record-card { background: white; border-radius: 16px; border: 1px solid #e2e8f0; overflow: hidden; transition: all 0.3s ease; }
     .record-card:hover { transform: translateY(-4px); box-shadow: 0 12px 24px rgba(0,0,0,0.08); border-color: #14b8a6; }
-    .record-video { width: 100%; height: 200px; object-fit: cover; background: #1e293b; }
+    .record-video { width: 100%; height: 100%; object-fit: cover; display: block; background: #1e293b; }
+    .record-thumb { position: relative; width: 100%; height: 200px; background: #1e293b; cursor: pointer; }
+    .thumb-placeholder { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; color: rgba(255,255,255,0.6); background: linear-gradient(180deg, #0f172a, #1e293b); }
+    .record-play { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 54px; height: 54px; border-radius: 50%; background: rgba(15,23,42,0.55); display: flex; align-items: center; justify-content: center; color: white; transition: all 0.2s; }
+    .record-play svg { width: 22px; height: 22px; margin-left: 3px; }
+    .record-thumb:hover .record-play { background: rgba(20, 184, 166, 0.9); }
     .record-content { padding: 20px; }
     .record-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 12px; }
     .record-title { font-size: 1rem; font-weight: 700; color: #1e293b; }
@@ -155,6 +161,7 @@
           </div>
         </div>
         <div class="detail-info" id="detailInfo"></div>
+        <div class="detail-diseases" id="detailDiseases"></div>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" onclick="downloadCurrentResult()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>下载结果</button>
@@ -163,11 +170,11 @@
     </div>
   </div>
 
-  <script src="/static/js/common.js"></script>
+  <script src="/static/js/common.js?v=2"></script>
   <script>
     if (!Utils.requireAuth()) {}
     const sidebar = document.getElementById('sidebar'); const mainWrapper = document.getElementById('mainWrapper');
-    document.getElementById('menuToggle').addEventListener('click', () => { sidebar.classList.toggle('open'); mainWrapper.classList.toggle('sidebar-collapsed'); });
+    document.getElementById('menuToggle').addEventListener('click', () => { Utils.toggleSidebar(); });
 
     async function loadUserInfo() { try { const res = await Utils.apiGet('/api/user/me'); if (res.code === 0) { const user = res.data; document.getElementById('userName').textContent = user.name || user.username; document.getElementById('userRole').textContent = user.role === 'admin' ? '管理员' : '普通用户'; document.getElementById('userAvatar').textContent = (user.name || user.username).charAt(0); if (user.role === 'admin') document.getElementById('navUserManage').style.display = 'flex'; } } catch (error) { console.error('获取用户信息失败:', error); } }
 
@@ -180,20 +187,63 @@
       } catch (error) { console.error('加载记录失败:', error); }
     }
 
+    function parseConfidence(confStr) {
+      if (!confStr) return '-';
+      const list = Utils.parseList(confStr);
+      if (Array.isArray(list) && list.length > 0) {
+        const maxConf = list.reduce((a, b) => {
+          const av = parseFloat(a), bv = parseFloat(b);
+          return (isNaN(bv) || av > bv) ? a : b;
+        });
+        return Utils.confToPct(maxConf);
+      }
+      return confStr;
+    }
+
+    function parseConfList(confStr) {
+      if (!confStr) return [];
+      const list = Utils.parseList(confStr);
+      return Array.isArray(list) ? list : [];
+    }
+
+    function parseLabel(labelStr) {
+      if (!labelStr) return '未知病害';
+      const list = Utils.parseList(labelStr);
+      if (Array.isArray(list) && list.length > 0) {
+        return [...new Set(list)].join('、');
+      }
+      return labelStr;
+    }
+
+    const EMPTY_HTML_VIDEO = `<div class="empty-state">
+      <div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg></div>
+      <h3 class="empty-title">暂无记录</h3>
+      <p class="empty-desc">开始使用视频预测功能来创建您的第一条记录</p>
+    </div>`;
+
     function renderRecords() {
       const grid = document.getElementById('recordsGrid');
-      const empty = document.getElementById('emptyState');
-      if (allRecords.length === 0) { grid.innerHTML = ''; grid.appendChild(empty); empty.style.display = 'block'; document.getElementById('pagination').innerHTML = ''; return; }
-      empty.style.display = 'none';
+      if (allRecords.length === 0) {
+        grid.innerHTML = EMPTY_HTML_VIDEO;
+        document.getElementById('pagination').innerHTML = '';
+        return;
+      }
+      const totalPages = Math.ceil(allRecords.length / pageSize);
+      if (currentPage > totalPages && totalPages >= 1) currentPage = totalPages;
       const start = (currentPage - 1) * pageSize;
       const pageRecords = allRecords.slice(start, start + pageSize);
       grid.innerHTML = pageRecords.map(record => `
         <div class="record-card">
-          <video class="record-video" poster="${record.out_img || ''}"><source src="${record.out_video || ''}" type="video/mp4"></video>
+          <div class="record-thumb" data-id="${record.id}" title="点击查看视频">
+            ${record.thumb
+              ? `<img class="record-video" src="${Utils.fileUrl(record.thumb)}" alt="视频缩略图"><div class="record-play"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="6 4 20 12 6 20 6 4"/></svg></div>`
+              : `<div class="thumb-placeholder"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="40" height="40"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg></div>`}
+          </div>
           <div class="record-content">
-            <div class="record-header"><h4 class="record-title">视频检测记录</h4><span class="record-badge">已完成</span></div>
+            <div class="record-header"><h4 class="record-title">${Utils.escapeHtml(parseLabel(record.label))}</h4><span class="record-badge">已完成</span></div>
             <div class="record-meta">
               <div class="record-meta-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${Utils.escapeHtml(record.all_time || '-')}</div>
+              <div class="record-meta-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>${parseConfidence(record.confidence) === '-' ? '未检出' : '最高置信度: ' + parseConfidence(record.confidence)}</div>
               <div class="record-meta-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>${Utils.formatDate(record.start_time)}</div>
               <div class="record-meta-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>模型: ${Utils.escapeHtml(record.weight || '-')}</div>
             </div>
@@ -221,10 +271,15 @@
     function goPage(page) { currentPage = page; renderRecords(); }
 
     document.getElementById('recordsGrid').addEventListener('click', (e) => {
+      const thumb = e.target.closest('.record-thumb');
       const viewBtn = e.target.closest('.btn-view');
       const downloadBtn = e.target.closest('.btn-download');
       const deleteBtn = e.target.closest('.btn-delete');
-      if (viewBtn) {
+      if (thumb) {
+        e.preventDefault();
+        e.stopPropagation();
+        viewDetail(parseInt(thumb.dataset.id));
+      } else if (viewBtn) {
         e.preventDefault();
         e.stopPropagation();
         const id = parseInt(viewBtn.dataset.id);
@@ -251,6 +306,8 @@
       document.getElementById('detailInputVideo').src = Utils.fileUrl(record.input_video) || '';
       document.getElementById('detailOutputVideo').src = Utils.fileUrl(record.out_video) || '';
       const infoHtml = `
+        <div class="detail-info-item"><div class="detail-info-label">检测结果</div><div class="detail-info-value">${Utils.escapeHtml(parseLabel(record.label))}</div></div>
+        <div class="detail-info-item"><div class="detail-info-label">最高置信度</div><div class="detail-info-value">${parseConfidence(record.confidence)}</div></div>
         <div class="detail-info-item"><div class="detail-info-label">检测状态</div><div class="detail-info-value">已完成</div></div>
         <div class="detail-info-item"><div class="detail-info-label">检测时间</div><div class="detail-info-value">${Utils.formatDate(record.start_time)}</div></div>
         <div class="detail-info-item"><div class="detail-info-label">处理时长</div><div class="detail-info-value">${Utils.escapeHtml(record.all_time || '-')}</div></div>
@@ -258,6 +315,16 @@
         <div class="detail-info-item"><div class="detail-info-label">用户</div><div class="detail-info-value">${Utils.escapeHtml(record.username || '-')}</div></div>
       `;
       document.getElementById('detailInfo').innerHTML = infoHtml;
+
+      const detailRes = document.getElementById('detailDiseases');
+      const labels = Utils.parseList(record.label) || [];
+      const confs = parseConfList(record.confidence);
+      if (labels.length > 0) {
+        Utils.renderDiseaseBlock(labels, confs, detailRes);
+      } else {
+        detailRes.innerHTML = '<div class="detail-diseases-empty">该记录未检测到病害。可能存在两种情况：视频画面中的作物确实健康，或病害程度较轻/姿态不佳未被模型检出。建议结合田间实地情况综合判断，必要时请当地农技专家进一步确认。</div>';
+      }
+
       document.getElementById('detailModal').classList.add('active');
       return false;
     }

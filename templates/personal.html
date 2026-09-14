@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/css/common.css">
-  <link rel="stylesheet" href="/static/css/sidebar.css">
+  <link rel="stylesheet" href="/static/css/sidebar.css?v=1">
   <style>
     :root {
       --sidebar-bg: linear-gradient(180deg, #14532d 0%, #166534 50%, #15803d 100%);
@@ -537,15 +537,14 @@
     <span id="toastMessage"></span>
   </div>
 
-  <script src="/static/js/common.js"></script>
+  <script src="/static/js/common.js?v=2"></script>
   <script>
     if (!Utils.requireAuth()) {}
 
     const sidebar = document.getElementById('sidebar');
     const mainWrapper = document.getElementById('mainWrapper');
     document.getElementById('menuToggle').addEventListener('click', () => {
-      sidebar.classList.toggle('open');
-      mainWrapper.classList.toggle('sidebar-collapsed');
+      Utils.toggleSidebar();
     });
 
     let currentUser = null;

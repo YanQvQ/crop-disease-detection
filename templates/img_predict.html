@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/css/common.css">
+  <link rel="stylesheet" href="/static/css/sidebar.css?v=1">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Inter', 'PingFang SC', 'Microsoft YaHei', sans-serif; background: #f0fdf4; }
@@ -269,15 +270,6 @@
     .result-label { font-size: 0.75rem; color: #94a3b8; margin-bottom: 6px; }
     .result-value { font-size: 1rem; font-weight: 600; color: #1e293b; }
     .result-confidence { font-size: 1.5rem; font-weight: 700; color: #22c55e; }
-    .result-labels {
-      margin-top: 20px; display: flex; flex-wrap: wrap; gap: 10px;
-    }
-    .label-tag {
-      padding: 8px 16px; border-radius: 20px;
-      background: linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(34, 197, 94, 0.05));
-      color: #16a34a; font-size: 0.875rem; font-weight: 600;
-      border: 1px solid rgba(34, 197, 94, 0.2);
-    }
     .result-image-container {
       margin-top: 20px;
       border-radius: 12px;
@@ -520,6 +512,12 @@
 
             <div class="result-labels" id="resultLabels"></div>
 
+            <div class="result-warning" id="resultWarning" style="display:none;">
+              <div class="result-warning-text">本次识别存在置信度不足 80% 的病害，结果可能存在偏差。建议结合田间实地情况，并联系当地农技专家或专业人士进一步确认后再采取防治措施。</div>
+            </div>
+
+            <div class="detail-diseases" id="resultDiseases"></div>
+
             <div class="result-image-container">
               <img src="" alt="结果图片" class="result-image" id="resultImage">
             </div>
@@ -535,7 +533,7 @@
     <div class="loading-text">AI 正在分析图片，请稍候...</div>
   </div>
 
-  <script src="/static/js/common.js"></script>
+  <script src="/static/js/common.js?v=2"></script>
   <script>
     if (!Utils.requireAuth()) {}
 
@@ -545,8 +543,7 @@
     const sidebar = document.getElementById('sidebar');
     const mainWrapper = document.getElementById('mainWrapper');
     document.getElementById('menuToggle').addEventListener('click', () => {
-      sidebar.classList.toggle('open');
-      mainWrapper.classList.toggle('sidebar-collapsed');
+      Utils.toggleSidebar();
     });
 
     // 加载用户信息
@@ -689,17 +686,39 @@
       let confidenceList = Utils.parseList(data.confidence) || [];
       let labelList = Utils.parseList(data.label) || [];
       document.getElementById('resultCount').textContent = labelList.length;
-      const shouldRound = localStorage.getItem('confidenceRound') !== '0';
-      const maxConf = confidenceList.length > 0 ? confidenceList.reduce((a, b) => parseFloat(a) > parseFloat(b) ? a : b) : '-';
-      document.getElementById('resultConfidence').textContent = maxConf === '-' ? '-' : (shouldRound ? Math.round(parseFloat(maxConf)) + '%' : maxConf);
+
+      const maxConf = confidenceList.length > 0 ? confidenceList.reduce((a, b) => {
+        const av = parseFloat(a), bv = parseFloat(b);
+        return (isNaN(bv) || av > bv) ? a : b;
+      }) : '-';
+      document.getElementById('resultConfidence').textContent = maxConf === '-' ? '-' : Utils.confToPct(maxConf);
       document.getElementById('resultModel').textContent = document.getElementById('modelSelect').value;
       document.getElementById('resultImage').src = Utils.fileUrl(data.outImg);
 
       const labelsContainer = document.getElementById('resultLabels');
       if (labelList.length > 0) {
-        labelsContainer.innerHTML = labelList.map(l => `<span class="label-tag">${Utils.escapeHtml(l)}</span>`).join('');
+        labelsContainer.innerHTML = Utils.groupLabels(labelList, confidenceList).map(g => {
+          const c = g.conf != null ? ` (${Utils.confToPct(g.conf)})` : '';
+          const low = Utils.isLowConfidence(g.conf) ? '<span class="tag-low">建议核实</span>' : '';
+          const cnt = g.count > 1 ? `<span class="tag-count">×${g.count}</span>` : '';
+          return `<span class="label-tag">${Utils.escapeHtml(g.label)}${c}${low}${cnt}</span>`;
+        }).join('');
       } else {
-        labelsContainer.innerHTML = '<span class="label-tag">未检测到病害</span>';
+        labelsContainer.innerHTML = '<span class="label-tag">未检测到病害</span><div class="label-empty-tip">可能为作物健康、病害较轻或姿态不佳未被检出，也可能是所选模型不匹配该类病害。建议确认模型后重试，并结合田间实地情况综合判断。</div>';
+      }
+
+      const warningEl = document.getElementById('resultWarning');
+      if (confidenceList.some(c => Utils.isLowConfidence(c))) {
+        warningEl.style.display = 'block';
+      } else {
+        warningEl.style.display = 'none';
+      }
+
+      const diseasesEl = document.getElementById('resultDiseases');
+      if (labelList.length > 0) {
+        Utils.renderDiseaseBlock(labelList, confidenceList, diseasesEl);
+      } else {
+        diseasesEl.innerHTML = '';
       }
 
       document.getElementById('resultSection').classList.add('show');

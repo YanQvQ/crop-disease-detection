@@ -1,0 +1,272 @@
+{
+  "meta": {
+    "version": "1.2",
+    "updated_at": "2026-09-13",
+    "language": "zh-CN",
+    "source": "综合公开农技资料整理，供参考；具体用药请以当地登记产品与说明书为准",
+    "label_source": "YanQvQ/crop-disease-detection data.yaml",
+    "stars_mapping": {
+      "0": "无病害",
+      "1": "极低",
+      "2": "低",
+      "3": "中",
+      "4": "高",
+      "5": "极高"
+    }
+  },
+  "crops": {
+    "corn": {
+      "crop_zh": "玉米",
+      "crop_en": "Corn",
+      "diseases": {
+        "blight": {
+          "name_zh": "玉米大斑病（叶斑疫病）",
+          "name_en": "Corn Leaf Blight (Northern Leaf Blight)",
+          "pathogen": "由真菌 Setosphaeria turcica（无性态 Exserohilum turcicum）引起。",
+          "transmission": "病残体（落叶、秸秆）和带菌种子带菌越冬，次年生长期产生分生孢子，借风雨、灌溉水传播，在叶片上再侵染。",
+          "harm_level": { "stars": 3, "label": "中", "yield_loss": "减产 20%~50%" },
+          "symptoms": "叶上出现梭形大斑，边缘褐色、中央灰褐色，潮湿时病斑上有灰黑色霉层（分生孢子梗与孢子）；病斑可相互连合并布满全叶，导致叶片呈火烧状枯死。",
+          "conditions": "气温 20~25℃、多雨高湿（相对湿度 85% 以上）、连作、种植密度过大、通风透光差的地块易于流行。",
+          "detection_hint": "多在中下部老叶先发病，识别时可观察病斑是否呈梭形大斑并带灰黑色霉层，以此区别于锈病（鲜黄色粉状疱斑）。",
+          "season": "7~9 月（生育中后期）",
+          "region": "东北、华北、西南春玉米及黄淮海夏玉米区",
+          "similar_diseases": ["common_rust", "gray_spot"],
+          "treatment": [
+            { "type": "农业防治", "detail": "轮作换茬，收获后彻底清除并深埋或烧毁病残秸秆，及时防治地下害虫减少伤口；合理密植、增加行距改善通风降湿。" },
+            { "type": "品种选择", "detail": "选用抗病品种，避免同一地块连作感病品种。" },
+            { "type": "化学防治", "detail": "发病初选用 25% 丙环唑乳油、50% 多菌灵可湿性粉剂或 25% 戊唑醇乳油，按产品说明兑水（约 60kg/亩）喷施叶片，间隔 7~10 天连喷 2~3 次。" },
+            { "type": "栽培管理", "detail": "增施磷钾肥，避免偏施氮肥，提高植株抗性。" }
+          ]
+        },
+        "common_rust": {
+          "name_zh": "玉米普通锈病",
+          "name_en": "Common Rust (Puccinia sorghi)",
+          "pathogen": "由真菌 Puccinia sorghi 引起。",
+          "transmission": "病原以夏孢子在病残体及田间病叶上越冬，也可借气流远距离传播；生长季内反复再侵染，随风雨扩散迅速。",
+          "harm_level": { "stars": 3, "label": "中", "yield_loss": "减产可达 30% 以上" },
+          "symptoms": "叶片两面散生或聚生圆形小疱斑，破裂后放出红褐色粉末状夏孢子；后期疱斑附近出现黑色冬孢子堆，叶片逐渐发黄枯死。",
+          "conditions": "温度 15~25℃、高湿多雾、光照不足、土壤瘠薄氮肥过多的田块易发病；种植感病品种是流行主因。",
+          "detection_hint": "典型特征为鲜红褐色粉状疱斑（锈粉），成片出现于叶片，与灰斑病的灰褐色斑、大斑病梭形斑明显不同。",
+          "season": "春末至秋季",
+          "region": "西南、华南及黄淮海玉米区",
+          "similar_diseases": ["blight", "gray_spot"],
+          "treatment": [
+            { "type": "品种选择", "detail": "种植抗锈病品种是根本措施。" },
+            { "type": "栽培管理", "detail": "合理密植、增施磷钾肥、控制氮肥，改善田间通风透光。" },
+            { "type": "化学防治", "detail": "发病初期喷施 25% 粉锈宁（三唑酮）乳油、或 20% 苯醚甲环唑水分散粒剂，间隔 7~10 天防治 2~3 次。" },
+            { "type": "田园清理", "detail": "收获后清除病残体并深翻掩埋，减少越冬菌源。" }
+          ]
+        },
+        "gray_spot": {
+          "name_zh": "玉米灰斑病",
+          "name_en": "Gray Leaf Spot (Cercospora zeae-maydis)",
+          "pathogen": "由真菌 Cercospora zeae-maydis 引起，中国田间以该种为主，部分地区亦见 Cercospora zeina。",
+          "transmission": "病原以菌丝块和分生孢子在病叶、病残体上越冬，借风雨、灌溉水传播；多从下部老叶开始向上蔓延。",
+          "harm_level": { "stars": 4, "label": "高", "yield_loss": "严重地块减产 40% 以上" },
+          "symptoms": "初期叶片出现浅黄色水渍状小点，后扩展为沿叶脉方向延长的长方形或长梭形灰褐色斑块，病斑边缘色浅、中央灰白色，气候湿润时斑面生灰色霉层。",
+          "conditions": "温度 25℃左右、相对湿度 90% 以上、连续阴雨高湿的年份或田块易流行；密植、低洼积水、氮肥过量地块加重。",
+          "detection_hint": "病斑为沿叶脉的长方形灰白斑（区别于大斑病梭形大斑、锈病粉疱），湿时呈灰霉层，是中后期叶部主要叶斑。",
+          "season": "8~9 月（生育中后期）",
+          "region": "西南、东北及黄淮海玉米区",
+          "similar_diseases": ["blight", "common_rust"],
+          "treatment": [
+            { "type": "品种选择", "detail": "选用抗病品种，合理密植并保持田间通风透光、降低湿度。" },
+            { "type": "田园清理", "detail": "秋翻深埋病残秸秆，避免连作。" },
+            { "type": "化学防治", "detail": "中后期（抽雄前后）发病初喷施 25% 丙环唑乳油、80% 代森锰锌可湿性粉剂或 50% 多菌灵，视天气连喷 2~3 次。" },
+            { "type": "栽培管理", "detail": "平衡施肥，增施钾肥，提高植株抗病能力。" }
+          ]
+        },
+        "health": {
+          "name_zh": "健康（无病害）",
+          "name_en": "Healthy Corn",
+          "pathogen": null,
+          "transmission": null,
+          "harm_level": { "stars": 0, "label": "无病害", "yield_loss": null },
+          "symptoms": "叶片绿色正常，无病斑、无锈粉、无白粉、无异常变色。",
+          "conditions": null,
+          "detection_hint": null,
+          "season": null,
+          "region": null,
+          "similar_diseases": [],
+          "treatment": [
+            { "type": "田间管理", "detail": "保持良好田间管理（合理施肥、适时灌溉、及时除草、防治虫害）以维持健康状态。未检出并不代表绝对无病，建议结合实地情况观察。" }
+          ]
+        }
+      }
+    },
+    "rice": {
+      "crop_zh": "水稻",
+      "crop_en": "Rice",
+      "diseases": {
+        "Brown_Spot": {
+          "name_zh": "水稻胡麻叶斑病（褐斑病）",
+          "name_en": "Brown Spot (Cochliobolus miyabeanus)",
+          "pathogen": "由真菌 Cochliobolus miyabeanus（无性态 Bipolaris oryzae）引起。",
+          "transmission": "以菌丝和分生孢子随病谷、病稻草越冬，插秧时带菌秧苗和病残体是主要初侵染源，孢子借风雨传播再侵染。",
+          "harm_level": { "stars": 3, "label": "中", "yield_loss": "严重时减产 20%~30%" },
+          "symptoms": "叶片上出现小而多的椭圆形或长圆形褐色斑点，中心灰白、边缘红褐色，形似芝麻粒；严重时病斑密布致叶片枯死，谷粒上出现茶褐色斑点。",
+          "conditions": "缺肥（尤其是缺氮缺钾）、土壤瘠薄干旱、排水不良的地块易发病；高温高湿、栽培密度过大加重病情；与“生理性褐斑”相似，需结合施肥情况区分。",
+          "detection_hint": "特征为密集的“芝麻粒状”小褐斑、中心灰白，通常发生于缺肥、偏瘦田块，辨识关键在于病斑小而密、多个并存。",
+          "season": "分蘖至灌浆期",
+          "region": "长江流域及南方稻区",
+          "similar_diseases": ["Rice_Blast"],
+          "treatment": [
+            { "type": "土壤改良", "detail": "根本措施是改良土壤、平衡施肥，重施有机肥、增施钾肥，及时追肥避免水稻缺素。" },
+            { "type": "品种选择", "detail": "选用抗病品种，种子处理：用 50% 多菌灵或 25% 三唑酮浸种消毒。" },
+            { "type": "化学防治", "detail": "发病初期喷施 50% 多菌灵、70% 甲基托布津可湿性粉剂或 30% 爱苗乳油，间隔 7~10 天连喷 2 次。" },
+            { "type": "水分管理", "detail": "合理排灌、浅水勤灌，避免深水久灌导致根际缺氧加重。" }
+          ]
+        },
+        "Rice_Blast": {
+          "name_zh": "稻瘟病",
+          "name_en": "Rice Blast (Magnaporthe oryzae)",
+          "pathogen": "由真菌 Magnaporthe oryzae（无性态 Pyricularia oryzae）引起。",
+          "transmission": "以分生孢子和菌丝在带菌稻草、病谷及病残体上越冬，春季随雨水飞溅传播，周而复始再侵染；可危害苗、叶、节、穗等各部位。",
+          "harm_level": { "stars": 4, "label": "高", "yield_loss": "减产 20%~80%，甚至绝收" },
+          "symptoms": "叶瘟：叶上出现棱形病斑，边缘褐色、中央灰白，湿度大时背面生灰绿色霉层，明显具“两头尖、中间宽”特点；穗颈瘟：穗颈形成褐色坏死，穗部发白空壳（俗称“吊颈”或“白穗”）。",
+          "conditions": "温度 25~28℃、高湿多雨、氮肥过量、田间郁闭的田块和品种易感时期（如分蘖盛期、破口抽穗期）为发病高峰。",
+          "detection_hint": "棱形病斑中央灰白、边缘褐色呈“稻瘟斑型”，或穗颈褐变发白，是区别于褐斑病（芝麻状小斑）的关键特征。",
+          "season": "分蘖盛期及破口抽穗期",
+          "region": "全国稻区，山区及冷凉稻区尤重",
+          "similar_diseases": ["Brown_Spot"],
+          "treatment": [
+            { "type": "品种选择", "detail": "选用抗病品种，控制氮肥、增施硅钾肥，浅水勤灌防止湿度过大。" },
+            { "type": "种子消毒", "detail": "用 1% 石灰水浸种或 25% 咪鲜胺浸种，杀灭带菌种源。" },
+            { "type": "化学防治", "detail": "发病初期及时喷施 20% 三环唑可湿性粉剂（关键药）、40% 稻瘟灵乳油或 75% 三环唑水分散粒剂，破口抽穗期重点喷施穗部，连喷 2~3 次。" },
+            { "type": "田园清理", "detail": "及时清除病残稻草并烧毁，压低越冬菌源。" }
+          ]
+        },
+        "Bacterial_Blight": {
+          "name_zh": "水稻细菌性白叶枯病（细菌性叶枯病）",
+          "name_en": "Bacterial Leaf Blight (Xanthomonas oryzae pv. oryzae)",
+          "pathogen": "由细菌 Xanthomonas oryzae pv. oryzae 引起。",
+          "transmission": "病菌随病谷、病稻草越冬，主要从叶缘水孔和伤口侵入，借雨水飞溅和灌溉水传播；带菌种子和病残体为初侵染源。",
+          "harm_level": { "stars": 4, "label": "高", "yield_loss": "有时造成大面积减产甚至绝收" },
+          "symptoms": "典型为叶缘型：病斑沿叶缘或叶尖向中脉扩展，黄褐色条斑、边缘波状，天气潮湿时病斑出现黄色蜜滴状脓珠（菌脓），干燥后叶枯白；也可见中脉型纵条斑。",
+          "conditions": "高温多雨、台风暴雨造成伤口、深水灌溉、氮肥过量的田块易暴发；7~9 月病季高温高湿利于流行。",
+          "detection_hint": "叶缘条状褐色扩张并伴“菌脓”、雨后叶面增白，是区别于真菌性叶斑的关键；菌脓在晨露时明显。",
+          "season": "7~9 月（台风暴雨季）",
+          "region": "华南、长江流域及南方稻区",
+          "similar_diseases": ["Rice_Blast", "Brown_Spot"],
+          "treatment": [
+            { "type": "品种选择", "detail": "选用抗病品种、严格种子检疫，用温水浸种或噻唑锌浸种消毒。" },
+            { "type": "栽培管理", "detail": "浅水灌溉、避免串灌深灌，增施硅钾肥、控制氮肥。" },
+            { "type": "化学防治", "detail": "发病初期喷施 20% 噻菌铜悬浮剂或 32% 噻唑锌悬浮剂，重点喷施叶面与叶缘，台风过境前后预防喷施。" },
+            { "type": "田园清理", "detail": "及时拔除并烧毁中心病株，阻断传播。注意：叶枯唑等含“敌枯双”成分药剂已列入部分区域禁限用名录，请核对当地规定。" }
+          ]
+        },
+        "Healthy_Rice": {
+          "name_zh": "健康（无病害）",
+          "name_en": "Healthy Rice",
+          "pathogen": null,
+          "transmission": null,
+          "harm_level": { "stars": 0, "label": "无病害", "yield_loss": null },
+          "symptoms": "叶片深绿健康，无病斑、无白化、无清晨菌脓，剑叶挺直。",
+          "conditions": null,
+          "detection_hint": null,
+          "season": null,
+          "region": null,
+          "similar_diseases": [],
+          "treatment": [
+            { "type": "田间管理", "detail": "维持浅水勤灌、平衡施肥、及时防治虫害（尤其是避免传毒虫媒）以保持健康。未检出并不代表绝对无病，建议结合实地情况观察。" }
+          ]
+        }
+      }
+    },
+    "wheat": {
+      "crop_zh": "小麦",
+      "crop_en": "Wheat",
+      "diseases": {
+        "wheat_stripe_rust": {
+          "name_zh": "小麦条锈病",
+          "name_en": "Wheat Stripe Rust (Puccinia striiformis)",
+          "pathogen": "由真菌 Puccinia striiformis f. sp. tritici 引起。",
+          "transmission": "以夏孢子在海拔较高越夏区及自生麦苗上越夏，秋季随气流南下侵染秋苗，次年春季由南往北再侵染流行，靠风力远距离传播。",
+          "harm_level": { "stars": 4, "label": "高", "yield_loss": "减产 30%~70%" },
+          "symptoms": "叶片上条状排列的鲜黄色小疱斑（夏孢子堆），呈多条平行黄色条线，破裂后放出黄色锈粉；后期叶背产生黑色冬孢子堆。疱斑“成条排列”且颜色偏黄。",
+          "conditions": "春季气温 10~20℃、多雨高湿、早播密植、氮肥过多、秋苗发病基数大的地区易大流行；品种抗性丧失是流行重要因素。",
+          "detection_hint": "鲜黄色锈粉、夏孢子堆沿叶脉呈条状排列，是区分条锈（条状）与叶锈（圆形散生）、秆锈（秆部）的核心特征。",
+          "season": "春季（返青拔节期）",
+          "region": "西南、西北及黄淮海麦区",
+          "similar_diseases": ["wheat_powdery_mildew"],
+          "treatment": [
+            { "type": "品种选择", "detail": "选用抗病品种并控制当年种植的感病品种，是治本措施。" },
+            { "type": "农业防治", "detail": "秋苗期发现病点时拔除中心病株并防治，压低春季菌源；合理密植、增施磷钾肥、加强排水。" },
+            { "type": "化学防治", "detail": "春季发病初期喷施 25% 三唑酮（粉锈宁）乳油、12.5% 烯唑醇或 15% 三唑醇，每亩兑水 60kg，间隔 7~10 天连喷 2~3 次。" }
+          ]
+        },
+        "wheat_scab": {
+          "name_zh": "小麦赤霉病",
+          "name_en": "Wheat Head Blight / Scab (Fusarium graminearum)",
+          "pathogen": "由镰刀菌 Fusarium graminearum（无性态，禾谷镰刀菌复合种）引起，有性态为 Gibberella zeae。",
+          "transmission": "病原在稻茬、玉米茬及田间病残体上越冬，春季产生子囊孢子借风雨飞溅传播，扬花灌浆期致病；为典型花期—灌浆期侵染的穗部病害。",
+          "harm_level": { "stars": 5, "label": "极高", "yield_loss": "感病品种可减产 30%~60%" },
+          "symptoms": "扬花期穗部或小穗褪绿、水渍状，后变褐色枯死，湿度大时颖壳缝隙及穗轴处产生粉红色或橙红色霉层（分生孢子），干燥后病穗僵缩发白（“白穗”），病粒皱缩、带斑。",
+          "conditions": "抽穗到乳熟期遇连续阴雨、高湿（相对湿度 90% 以上）、气温 20~25℃，且田间多病残体（稻茬）时严重发病；是典型“天气型”病害，扬花期降雨是关键诱因。",
+          "detection_hint": "穗部（尤其小穗）褐变并出现粉红色霉层、“白穗”，常发生在花期后遇雨，是最具标志性的识别特征。",
+          "season": "扬花至灌浆期（花期遇雨）",
+          "region": "长江中下游、江淮及黄淮麦区",
+          "similar_diseases": ["wheat_powdery_mildew"],
+          "treatment": [
+            { "type": "农业防治", "detail": "稻麦轮作区深耕灭茬、清除病残体，合理轮作、降低田间湿度，选用抗赤霉病品种并适时播种，避免贪青晚熟。" },
+            { "type": "化学防治", "detail": "掌握“见花打药，扬花初期至盛期”原则，喷施 25% 氰烯菌酯、40% 戊唑醇·多菌灵或 25% 丙环唑，重点喷穗部，间隔 5~7 天再喷 1 次。" },
+            { "type": "毒素防控", "detail": "收获后及时烘干、筛除病粒、充分晒干储藏，避免霉变产生 DON 毒素。" }
+          ]
+        },
+        "wheat_powdery_mildew": {
+          "name_zh": "小麦白粉病",
+          "name_en": "Wheat Powdery Mildew (Blumeria graminis f. sp. tritici)",
+          "pathogen": "由真菌 Blumeria graminis（专性寄生白粉菌）引起。",
+          "transmission": "以闭囊壳随病残体越冬，也可借越夏菌源传播，秋季侵染秋苗，春季菌丝体在上部叶片上产孢再侵染，借气流传播，随叶位向上蔓延。",
+          "harm_level": { "stars": 3, "label": "中", "yield_loss": "减产 5%~25%，严重时 30% 以上" },
+          "symptoms": "叶片正反面初生近圆形白色粉状霉层（菌丝和分生孢子），随后扩大覆盖全叶呈白粉状，后期长出黑色小点（闭囊壳）；严重时叶片发黄枯死、株形矮化。",
+          "conditions": "春季气温 15~22℃、高湿、田间郁闭、氮肥偏多、密植的早播麦田易发病；弱光、肥水不当地块加重。",
+          "detection_hint": "特征是叶面覆盖明显的“白粉状霉层”、后期生黑色小粒，一眼可辨，是区别于叶斑类病害的独特外观。",
+          "season": "春季（返青至拔节）",
+          "region": "黄淮海、西南及长江流域麦区",
+          "similar_diseases": ["wheat_stripe_rust"],
+          "treatment": [
+            { "type": "品种选择", "detail": "选用抗病品种，冬前控制密度、均衡施肥（控氮增钾）、适时适量灌水，降低田间郁蔽。" },
+            { "type": "化学防治", "detail": "早春发病初期喷施 25% 三唑酮乳油、40% 灭菌唑或 10% 苯醚甲环唑水分散粒剂，间隔 7~10 天连喷 2 次，也可用醚菌酯类药剂。" },
+            { "type": "农业防治", "detail": "秋苗期防治压低冬季菌源，重病田重喷叶下部老叶片。" }
+          ]
+        },
+        "wheat_yellow_dwarf": {
+          "name_zh": "小麦黄矮病",
+          "name_en": "Wheat Yellow Dwarf / Barley Yellow Dwarf Virus (BYDV)",
+          "pathogen": "由大麦黄矮病毒（BYDV）引起，属病毒性病害，主要通过蚜虫传播。",
+          "transmission": "主要靠蚜虫（麦二叉蚜、麦长管蚜等）传播，蚜虫在带毒寄主上取食后终生带毒并传毒，是目前唯一最主要的传播方式；初侵染源为带毒越夏/越冬植物及带虫基数。",
+          "harm_level": { "stars": 3, "label": "中", "yield_loss": "严重田减产 20%~50%" },
+          "symptoms": "叶片由叶尖和叶缘开始褪绿黄化，后整叶黄化、植株矮缩，分蘖减少，抽穗迟、穗小粒少而秕；部分品种叶片出现明显黄条斑。黄化—矮缩—穗秕是三大特征。",
+          "conditions": "秋季蚜虫迁飞高峰期和春季蚜虫发生高峰期，温暖少雨利于蚜虫繁殖时流行；早播、靠近越夏寄主（如稗草、燕麦）的地块发病重。",
+          "detection_hint": "防治关键在“防蚜防毒”：秋苗早防蚜、压低虫源是核心，识别重点为整株黄化矮缩且伴随蚜虫。",
+          "season": "秋季及春季蚜虫迁飞期",
+          "region": "北方冬麦区及西北春麦区",
+          "similar_diseases": ["wheat_stripe_rust"],
+          "treatment": [
+            { "type": "品种选择", "detail": "治蚜防病是根本，选用抗（耐）蚜、抗病毒品种。" },
+            { "type": "虫媒防治", "detail": "秋苗期和春季重点防治蚜虫：喷施 10% 吡虫啉可湿性粉剂、25% 噻虫嗪或 5% 啶虫脒，压低传毒虫口基数。" },
+            { "type": "栽培管理", "detail": "适时播种，清除田间及路边越夏寄主杂草，减少毒源和虫源。" },
+            { "type": "补救措施", "detail": "无病毒特效药，重在“防虫断链”，受害田及时追肥减少损失。" }
+          ]
+        },
+        "healthy_wheat": {
+          "name_zh": "健康（无病害）",
+          "name_en": "Healthy Wheat",
+          "pathogen": null,
+          "transmission": null,
+          "harm_level": { "stars": 0, "label": "无病害", "yield_loss": null },
+          "symptoms": "叶片浓绿健康，无锈粉、无白粉、无梭形斑、无花叶黄化，植株正常生长。",
+          "conditions": null,
+          "detection_hint": null,
+          "season": null,
+          "region": null,
+          "similar_diseases": [],
+          "treatment": [
+            { "type": "田间管理", "detail": "科学施肥、合理灌溉、及时防治蚜虫等虫媒，保持群体健康。未检出并不代表绝对无病，建议结合实地情况观察。" }
+          ]
+        }
+      }
+    }
+  }
+}

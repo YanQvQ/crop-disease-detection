@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/css/common.css">
-  <link rel="stylesheet" href="/static/css/sidebar.css">
+  <link rel="stylesheet" href="/static/css/sidebar.css?v=1">
   <style>
     :root {
       --sidebar-bg: linear-gradient(180deg, #14532d 0%, #166534 50%, #15803d 100%);
@@ -243,6 +243,7 @@
     .notification-item-icon.info { background: rgba(59, 130, 246, 0.1); color: #3b82f6; }
     .notification-item-icon.success { background: rgba(34, 197, 94, 0.1); color: #22c55e; }
     .notification-item-icon.warning { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
+    .notification-item-icon.system { background: rgba(139, 92, 246, 0.1); color: #8b5cf6; }
     .notification-item-icon svg { width: 18px; height: 18px; }
     .notification-item-content { flex: 1; min-width: 0; }
     .notification-item-title { font-size: 0.875rem; font-weight: 600; color: #1e293b; margin-bottom: 3px; }
@@ -333,6 +334,7 @@
     .all-notif-item-icon.info { background: rgba(59, 130, 246, 0.1); color: #3b82f6; }
     .all-notif-item-icon.success { background: rgba(34, 197, 94, 0.1); color: #22c55e; }
     .all-notif-item-icon.warning { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
+    .all-notif-item-icon.system { background: rgba(139, 92, 246, 0.1); color: #8b5cf6; }
     .all-notif-item-icon svg { width: 20px; height: 20px; }
     .all-notif-item-content { flex: 1; min-width: 0; }
     .all-notif-item-title { font-size: 0.9375rem; font-weight: 600; color: #1e293b; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
@@ -1100,7 +1102,7 @@
           </svg>
         </div>
         <h3 class="about-modal-title" id="aboutTitle">农作物病害识别系统</h3>
-        <p class="about-modal-version" id="aboutVersion">版本 2.2.0</p>
+        <p class="about-modal-version" id="aboutVersion">版本 2.3.0</p>
       </div>
       <div class="about-modal-body">
         <p class="about-modal-desc" id="aboutDesc">基于深度学习YOLO模型开发的智能农作物病害识别系统，支持图片、视频和实时摄像头检测。</p>
@@ -1174,7 +1176,7 @@
     </div>
   </div>
 
-  <script src="/static/js/common.js"></script>
+  <script src="/static/js/common.js?v=2"></script>
   <script>
     // 检查登录
     if (!Utils.requireAuth()) {}
@@ -1185,8 +1187,7 @@
     const menuToggle = document.getElementById('menuToggle');
 
     menuToggle.addEventListener('click', function() {
-      sidebar.classList.toggle('open');
-      mainWrapper.classList.toggle('sidebar-collapsed');
+      Utils.toggleSidebar();
     });
 
     // 加载用户信息
@@ -1349,13 +1350,12 @@
     }
 
     // 通知功能
-    let notificationsLoaded = false;
-
     function toggleNotifications(event) {
       event.stopPropagation();
       const panel = document.getElementById('notificationPanel');
+      const willShow = !panel.classList.contains('show');
       panel.classList.toggle('show');
-      if (panel.classList.contains('show') && !notificationsLoaded) {
+      if (willShow) {
         loadNotifications();
       }
     }
@@ -1369,7 +1369,6 @@
     });
 
     async function loadNotifications() {
-      notificationsLoaded = true;
       const list = document.getElementById('notificationList');
       try {
         const res = await Utils.apiGet('/api/notifications');
@@ -1414,6 +1413,7 @@
       }
 
       const iconMap = {
+        system: '<path d="M20 13V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v8l-2 3v1h20v-1l-2-3z"/><path d="M8 21h8"/>',
         info: '<path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>',
         success: '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>',
         warning: '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>'
@@ -1501,6 +1501,7 @@
       }
 
       const iconMap = {
+        system: '<path d="M20 13V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v8l-2 3v1h20v-1l-2-3z"/><path d="M8 21h8"/>',
         info: '<path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>',
         success: '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>',
         warning: '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>'
@@ -1562,6 +1563,7 @@
       loadUserInfo();
       loadStats();
       loadRecentRecords();
+      loadNotifications();
     });
   </script>
 </body>

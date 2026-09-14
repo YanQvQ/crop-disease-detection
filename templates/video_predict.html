@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/css/common.css">
+  <link rel="stylesheet" href="/static/css/sidebar.css?v=1">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Inter', 'PingFang SC', 'Microsoft YaHei', sans-serif; background: #f0fdf4; }
@@ -192,8 +193,13 @@
             </div>
             <div class="result-info">
               <div class="result-item"><div class="result-label">使用模型</div><div class="result-value" id="resultModel">-</div></div>
-              <div class="result-item"><div class="result-label">置信度</div><div class="result-value" id="resultConf">-</div></div>
+              <div class="result-item"><div class="result-label">最高置信度</div><div class="result-value" id="resultConf">-</div></div>
             </div>
+            <div class="result-labels" id="resultLabels"></div>
+            <div class="result-warning" id="resultWarning" style="display:none;">
+              <div class="result-warning-text">本次识别存在置信度不足 80% 的病害，结果可能存在偏差。建议结合田间实地情况，并联系当地农技专家或专业人士进一步确认后再采取防治措施。</div>
+            </div>
+            <div class="detail-diseases" id="resultDiseases"></div>
             <div class="result-video-container">
               <video class="result-video" id="resultVideo" controls></video>
             </div>
@@ -208,12 +214,12 @@
     <div class="loading-text">视频分析中，请稍候...</div>
   </div>
 
-  <script src="/static/js/common.js"></script>
+  <script src="/static/js/common.js?v=2"></script>
   <script>
     if (!Utils.requireAuth()) {}
     let selectedFile = null; let uploadedUrl = '';
     const sidebar = document.getElementById('sidebar'); const mainWrapper = document.getElementById('mainWrapper');
-    document.getElementById('menuToggle').addEventListener('click', () => { sidebar.classList.toggle('open'); mainWrapper.classList.toggle('sidebar-collapsed'); });
+    document.getElementById('menuToggle').addEventListener('click', () => { Utils.toggleSidebar(); });
 
     async function loadUserInfo() { try { const res = await Utils.apiGet('/api/user/me'); if (res.code === 0) { const user = res.data; document.getElementById('userName').textContent = user.name || user.username; document.getElementById('userRole').textContent = user.role === 'admin' ? '管理员' : '普通用户'; document.getElementById('userAvatar').textContent = (user.name || user.username).charAt(0); if (user.role === 'admin') document.getElementById('navUserManage').style.display = 'flex'; } } catch (error) { console.error('获取用户信息失败:', error); } }
     async function loadModels() { try { const models = await Utils.fetchModels(); const select = document.getElementById('modelSelect'); if (models.length > 0) select.innerHTML = models.map(m => `<option value="${m.value}">${m.label}</option>`).join(''); else select.innerHTML = '<option value="">暂无可用模型</option>'; } catch (error) { console.error('加载模型失败:', error); } }
@@ -234,7 +240,48 @@
 
     async function startPredict() { if (!selectedFile) return; const model = document.getElementById('modelSelect').value; if (!model) { Utils.showToast('请选择模型', '请先选择一个识别模型', 'warning'); return; } const loading = document.getElementById('loadingOverlay'); loading.classList.add('show'); try { const formData = new FormData(); formData.append('file', selectedFile); const uploadRes = await Utils.apiUpload('/files/upload', formData); if (uploadRes.code !== 0) throw new Error(uploadRes.message || '文件上传失败'); uploadedUrl = uploadRes.data; const predictRes = await Utils.apiPost('/api/predictVideo', { inputVideo: uploadedUrl, weight: model, conf: parseInt(confSlider.value) / 100, kind: 'video' }); if (predictRes.status === 200) { showResult(predictRes); Utils.showToast('分析成功', '视频病害分析完成', 'success'); } else { throw new Error(predictRes.message || '预测失败'); } } catch (error) { console.error('预测失败:', error); Utils.showToast('分析失败', error.message, 'error'); } finally { loading.classList.remove('show'); } }
 
-    function showResult(data) { document.getElementById('resultModel').textContent = document.getElementById('modelSelect').value; document.getElementById('resultConf').textContent = (parseInt(confSlider.value)) + '%'; document.getElementById('resultVideo').src = Utils.fileUrl(data.outVideo); document.getElementById('resultSection').classList.add('show'); }
+    function showResult(data) {
+      document.getElementById('resultModel').textContent = document.getElementById('modelSelect').value;
+      document.getElementById('resultConf').textContent = '-';
+      document.getElementById('resultVideo').src = Utils.fileUrl(data.outVideo);
+
+      let labelList = [];
+      let confidenceList = [];
+      try { labelList = Utils.parseList(data.labels) || []; } catch (e) {}
+      try { confidenceList = Utils.parseList(data.confs) || []; } catch (e) {}
+
+      if (confidenceList.length > 0) {
+        const maxConf = confidenceList.reduce((a, b) => {
+          const av = parseFloat(a), bv = parseFloat(b);
+          return (isNaN(bv) || av > bv) ? a : b;
+        });
+        document.getElementById('resultConf').textContent = Utils.confToPct(maxConf);
+      }
+
+      const labelsContainer = document.getElementById('resultLabels');
+      if (labelList.length > 0) {
+        labelsContainer.innerHTML = Utils.groupLabels(labelList, confidenceList).map(g => {
+          const c = g.conf != null ? ` (${Utils.confToPct(g.conf)})` : '';
+          const low = Utils.isLowConfidence(g.conf) ? '<span class="tag-low">建议核实</span>' : '';
+          const cnt = g.count > 1 ? `<span class="tag-count">×${g.count}</span>` : '';
+          return `<span class="label-tag">${Utils.escapeHtml(g.label)}${c}${low}${cnt}</span>`;
+        }).join('');
+      } else {
+        labelsContainer.innerHTML = '<span class="label-tag">未检测到病害</span><div class="label-empty-tip">可能为作物健康、病害较轻或姿态不佳未被检出，也可能是所选模型不匹配该类病害。建议确认模型后重试，并结合田间实地情况综合判断。</div>';
+      }
+
+      const warningEl = document.getElementById('resultWarning');
+      warningEl.style.display = confidenceList.some(c => Utils.isLowConfidence(c)) ? 'block' : 'none';
+
+      const diseasesEl = document.getElementById('resultDiseases');
+      if (labelList.length > 0) {
+        Utils.renderDiseaseBlock(labelList, confidenceList, diseasesEl);
+      } else {
+        diseasesEl.innerHTML = '';
+      }
+
+      document.getElementById('resultSection').classList.add('show');
+    }
 
     document.addEventListener('DOMContentLoaded', () => { loadUserInfo(); loadModels(); });
   </script>

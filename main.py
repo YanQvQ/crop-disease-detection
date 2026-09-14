@@ -29,6 +29,7 @@ import ipaddress
 import json
 import shutil
 from urllib.parse import urlparse
+from sqlalchemy import text
 from werkzeug.utils import secure_filename
 try:
     from dotenv import load_dotenv
@@ -145,11 +146,14 @@ class VideoRecords(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     input_video = db.Column(db.String(500))
     out_video = db.Column(db.String(500))
+    thumb = db.Column(db.String(500))
     username = db.Column(db.String(255))
     start_time = db.Column(db.String(50))
     conf = db.Column(db.String(20))
     weight = db.Column(db.String(255))
     kind = db.Column(db.String(50))
+    label = db.Column(db.String(1000))
+    confidence = db.Column(db.String(1000))
 
 
 class CameraRecords(db.Model):
@@ -160,6 +164,8 @@ class CameraRecords(db.Model):
     start_time = db.Column(db.String(50))
     out_video = db.Column(db.String(500))
     kind = db.Column(db.String(50))
+    label = db.Column(db.String(1000))
+    confidence = db.Column(db.String(1000))
 
 
 class Notification(db.Model):
@@ -187,6 +193,21 @@ def add_notification(username, type_, title, content):
         db.session.commit()
     except Exception as e:
         logger.error(f'写入通知失败: {str(e)}')
+
+
+def ensure_system_update_notification(username):
+    """为当前用户确保存在一条系统更新通知（每个用户仅生成一次，置顶展示）。"""
+    try:
+        existing = Notification.query.filter_by(username=username, type='system').first()
+        if existing:
+            return
+        add_notification(
+            username, 'system',
+            f'系统已更新至 {SYSTEM_VERSION}',
+            '新增病害知识库与诊断防治建议、低置信度预警，优化历史记录展示与通知体验。'
+        )
+    except Exception as e:
+        logger.error(f'写入系统更新通知失败: {str(e)}')
 
 
 def allowed_file(filename):
@@ -278,11 +299,12 @@ def is_safe_url(url):
 
 
 def is_local_url(url):
-    """判断 URL 是否指向本站（host 与当前请求一致）。本站已鉴权上传的文件跳过 SSRF 校验。"""
+    """判断 URL 是否指向本站（host 与当前请求一致）或本站资源相对路径（/files/）。本站文件跳过 SSRF 校验。"""
     try:
         parsed = urlparse(url)
         if not parsed.hostname:
-            return False
+            # 相对路径：仅认本项目自己的上传/资源目录
+            return parsed.path.startswith('/files/')
         req_host = request.host
         if ':' in req_host:
             req_host, req_port = req_host.split(':', 1)
@@ -321,8 +343,42 @@ def get_base_url():
     return f"{request.scheme}://{request.host}"
 
 
+def make_video_thumb(video_path, thumb_path, max_width=360):
+    """从视频中抽一帧生成缩略图（JPEG）。成功返回 True。"""
+    try:
+        cap = cv2.VideoCapture(video_path)
+        ret, frame = cap.read()
+        cap.release()
+        if not ret or frame is None:
+            return False
+        h, w = frame.shape[:2]
+        if w > max_width:
+            nw = max_width
+            nh = int(h * (max_width / w))
+            frame = cv2.resize(frame, (nw, nh))
+        cv2.imwrite(thumb_path, frame, [cv2.IMWRITE_JPEG_QUALITY, 70])
+        return os.path.exists(thumb_path)
+    except Exception as e:
+        app.logger.warning(f'生成视频缩略图失败: {str(e)}')
+        return False
+
+
 with app.app_context():
     db.create_all()
+    # 轻量迁移：为早期建库的 SQLite 表补充 label / confidence 字段（无破坏性，仅补列）
+    def _ensure_columns(table, cols):
+        try:
+            with db.engine.connect() as conn:
+                existing = {r[1] for r in conn.execute(text(f'PRAGMA table_info({table})'))}
+                for cname, ctype in cols:
+                    if cname not in existing:
+                        conn.execute(text(f'ALTER TABLE {table} ADD COLUMN {cname} {ctype}'))
+                        conn.commit()
+        except Exception as e:
+            app.logger.warning(f'迁移 {table} 列失败: {e}')
+
+    _ensure_columns('video_records', [('label', 'VARCHAR(1000)'), ('confidence', 'VARCHAR(1000)'), ('thumb', 'VARCHAR(500)')])
+    _ensure_columns('camera_records', [('label', 'VARCHAR(1000)'), ('confidence', 'VARCHAR(1000)')])
     if not User.query.filter_by(username='admin').first():
         admin = User(
             username='admin',
@@ -341,6 +397,11 @@ with app.app_context():
 
 recording = False
 camera_thread = None
+# 摄像头会话期间的检测统计，由 camera_predict 线程写入、stop_camera 读取返回
+camera_max_conf = 0.0
+camera_labels = []
+camera_confs = []
+camera_loop_done = threading.Event()
 
 
 @app.route('/favicon.ico')
@@ -606,7 +667,7 @@ def predict_img():
         filename = str(uuid.uuid4()) + '_result.jpg'
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         os.rename(result_path, filepath)
-        uploaded_url = f'{get_base_url()}/files/{filename}'
+        uploaded_url = f'/files/{filename}'
 
         all_time = f"{(end_time - start_time):.2f}秒"
 
@@ -706,6 +767,9 @@ def predict_video():
         conf = float(data.get('conf', 0.5))
         frame_idx = 0
         annotated_frame = None
+        max_conf = 0.0
+        has_detection = False
+        class_max = {}
         while cap.isOpened():
             ret, frame = cap.read()
             if not ret:
@@ -713,6 +777,11 @@ def predict_video():
             if frame_idx % step == 0:
                 with infer_lock:
                     results = model(frame, conf=conf)
+                for cls, c in zip(results[0].boxes.cls.tolist(), results[0].boxes.conf.tolist()):
+                    has_detection = True
+                    max_conf = max(max_conf, float(c))
+                    cid = int(cls)
+                    class_max[cid] = max(class_max.get(cid, 0.0), float(c))
                 annotated_frame = results[0].plot()
             out.write(annotated_frame if annotated_frame is not None else frame)
             frame_idx += 1
@@ -720,6 +789,14 @@ def predict_video():
         cap.release()
         out.release()
         end_time = time.time()
+
+        # 汇总整段视频检测到的病害标签（每个类别保留其最高置信度）
+        names = getattr(model, 'names', None) or results[0].names if has_detection else {}
+        det_labels = []
+        det_confs = []
+        for cid in sorted(class_max):
+            det_labels.append(names.get(cid, '未知'))
+            det_confs.append(round(class_max[cid], 4))
 
         h264_output_path = f'./runs/h264_{uuid.uuid4()}.mp4'
         try:
@@ -742,7 +819,12 @@ def predict_video():
         filename = str(uuid.uuid4()) + '_result.mp4'
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         os.rename(output_path, filepath)
-        uploaded_url = f'{get_base_url()}/files/{filename}'
+        uploaded_url = f'/files/{filename}'
+        thumb_url = None
+        thumb_filename = filename.replace('_result.mp4', '_thumb.jpg')
+        thumb_path = os.path.join(app.config['UPLOAD_FOLDER'], thumb_filename)
+        if make_video_thumb(filepath, thumb_path):
+            thumb_url = f'/files/{thumb_filename}'
 
         new_record = VideoRecords(
             input_video=data["inputVideo"],
@@ -751,7 +833,10 @@ def predict_video():
             start_time=datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             conf=str(conf),
             weight=weight,
-            kind=data.get("kind", "")
+            kind=data.get("kind", ""),
+            label=json.dumps(det_labels, ensure_ascii=False),
+            confidence=json.dumps(det_confs, ensure_ascii=False),
+            thumb=thumb_url
         )
         db.session.add(new_record)
         db.session.commit()
@@ -762,7 +847,10 @@ def predict_video():
         return jsonify({
             'status': 200,
             'message': '预测成功',
-            'outVideo': uploaded_url
+            'outVideo': uploaded_url,
+            'maxConf': has_detection and round(max_conf, 4) or None,
+            'labels': json.dumps(det_labels, ensure_ascii=False),
+            'confs': json.dumps(det_confs, ensure_ascii=False)
         })
     except Exception as e:
         logger.error(f'视频预测失败: {str(e)}', exc_info=True)
@@ -806,8 +894,12 @@ def start_camera():
     kind = data.get('kind', '')
 
     def camera_predict():
-        global recording
+        global recording, camera_max_conf, camera_labels, camera_confs
         nonlocal output_path
+        camera_max_conf = 0.0
+        has_detection = False
+        camera_labels = []
+        camera_confs = []
 
         # 仅向发起者的 WebSocket 连接推送，未提供 socket_id 时不推送（前端本地显示，无需服务器推帧）
         def notify(event, payload):
@@ -839,6 +931,7 @@ def start_camera():
 
             logger.info('开始摄像头预测循环...')
             frame_count = 0
+            class_max = {}
             while recording:
                 ret, frame = cap.read()
                 if not ret:
@@ -846,6 +939,11 @@ def start_camera():
                     break
                 with infer_lock:
                     results = model(frame, conf=conf)
+                for cls, c in zip(results[0].boxes.cls.tolist(), results[0].boxes.conf.tolist()):
+                    has_detection = True
+                    camera_max_conf = max(camera_max_conf, float(c))
+                    cid = int(cls)
+                    class_max[cid] = max(class_max.get(cid, 0.0), float(c))
                 annotated_frame = results[0].plot()
                 out.write(annotated_frame)
 
@@ -861,6 +959,15 @@ def start_camera():
 
             cap.release()
             out.release()
+            # 汇总本次会话检测到的病害标签（每个类别保留最高置信度）
+            if has_detection:
+                camera_max_conf = round(camera_max_conf, 4)
+                names = getattr(model, 'names', None) or results[0].names
+                for cid in sorted(class_max):
+                    camera_labels.append(names.get(cid, '未知'))
+                    camera_confs.append(round(class_max[cid], 4))
+            # 通知 stop_camera 推理循环已结束，可读取统计结果
+            camera_loop_done.set()
 
             h264_output_path = f'./runs/h264_camera_{uuid.uuid4()}.mp4'
             try:
@@ -883,7 +990,7 @@ def start_camera():
             filename = str(uuid.uuid4()) + '_camera.mp4'
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             os.rename(output_path, filepath)
-            uploaded_url = f'{get_base_url()}/files/{filename}'
+            uploaded_url = f'/files/{filename}'
 
             with app.app_context():
                 new_record = CameraRecords(
@@ -892,7 +999,9 @@ def start_camera():
                     username=current_user,
                     start_time=datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
                     out_video=uploaded_url,
-                    kind=kind
+                    kind=kind,
+                    label=json.dumps(camera_labels, ensure_ascii=False),
+                    confidence=json.dumps(camera_confs, ensure_ascii=False)
                 )
                 db.session.add(new_record)
                 db.session.commit()
@@ -915,8 +1024,17 @@ def start_camera():
 def stop_camera():
     global recording
     recording = False
-    logger.info('摄像头预测已停止')
-    return jsonify({'status': 200, 'message': '摄像头预测已停止'})
+    # 等待推理循环结束（最多 5 秒）以读取本次会话最高置信度
+    camera_loop_done.wait(timeout=5)
+    camera_loop_done.clear()
+    logger.info(f'摄像头预测已停止, 最高置信度={camera_max_conf}')
+    return jsonify({
+        'status': 200,
+        'message': '摄像头预测已停止',
+        'maxConf': camera_max_conf or None,
+        'labels': json.dumps(camera_labels, ensure_ascii=False),
+        'confs': json.dumps(camera_confs, ensure_ascii=False)
+    })
 
 
 @app.route('/api/imgRecords', methods=['GET'])
@@ -966,15 +1084,32 @@ def get_video_records():
 
         record_list = []
         for record in records:
+            thumb_url = record.thumb
+            # 历史记录回填缩略图（仅当本地视频文件存在时生成一次；兼容绝对/相对两种存法）
+            if not thumb_url and record.out_video:
+                name = os.path.basename(record.out_video)
+                src = os.path.join(app.config['UPLOAD_FOLDER'], name)
+                thumb_name = name.replace('_result.mp4', '_thumb.jpg')
+                thumb_path = os.path.join(app.config['UPLOAD_FOLDER'], thumb_name)
+                if os.path.exists(src) and make_video_thumb(src, thumb_path):
+                    thumb_url = f'/files/{thumb_name}'
+                    try:
+                        record.thumb = thumb_url
+                        db.session.commit()
+                    except Exception:
+                        db.session.rollback()
             record_list.append({
                 'id': record.id,
                 'input_video': record.input_video,
                 'out_video': record.out_video,
+                'thumb': thumb_url,
                 'username': record.username,
                 'start_time': record.start_time,
                 'conf': record.conf,
                 'weight': record.weight,
-                'kind': record.kind
+                'kind': record.kind,
+                'label': record.label,
+                'confidence': record.confidence
             })
         return jsonify({'code': 0, 'data': record_list})
     except Exception as e:
@@ -1003,7 +1138,9 @@ def get_camera_records():
                 'username': record.username,
                 'start_time': record.start_time,
                 'out_video': record.out_video,
-                'kind': record.kind
+                'kind': record.kind,
+                'label': record.label,
+                'confidence': record.confidence
             })
         return jsonify({'code': 0, 'data': record_list})
     except Exception as e:
@@ -1396,7 +1533,7 @@ def upload_file():
             os.remove(filepath)
             return jsonify({'code': 1, 'message': '文件大小超出限制'})
 
-        file_url = f'{get_base_url()}/files/{unique_filename}'
+        file_url = f'/files/{unique_filename}'
         logger.info(f'文件上传成功: {unique_filename}, 大小: {file_size} bytes')
         return jsonify({'code': 0, 'data': file_url})
     except Exception as e:
@@ -1626,9 +1763,25 @@ def delete_model(filename):
 
 # ==================== 系统信息 API ====================
 
-SYSTEM_VERSION = '2.2.0'
+SYSTEM_VERSION = '2.3.0'
 
 UPDATE_LOGS = [
+    {
+        'version': '2.3.0',
+        'date': '2026-09-14',
+        'changes': [
+            '新增病害知识库：检测结果自动展示病害解释、发病症状、防治方法与用药建议',
+            '优化检测结果展示：图片/视频/摄像头检测页面展示识别标签、置信度与防治建议',
+            '优化历史记录：图片/视频/摄像头记录展示检测结果与防治建议',
+            '新增低置信度预警：置信度低于80%时提示结果可能存在偏差，并提供"建议核实"标记',
+            '优化未检出提示：未检测到病害时展示说明，区分作物健康/检出失败与所选模型不匹配两种情况，建议确认模型后重试并结合田间实地情况综合判断',
+            '新增用药免责提示：防治建议中的用药信息附橙黄色警示样式，注明请以当地农技专家或专业人士意见为准',
+            '优化多目标显示：同类病害合并展示（×N），并按最高置信度归并',
+            '优化置信度显示：支持四舍五入开关（整数百分比/精确百分比），统一"最高置信度"术语与格式',
+            '修复仪表盘横向溢出与布局错乱问题',
+            '修复浏览器缓存旧静态资源导致的显示异常'
+        ]
+    },
     {
         'version': '2.2.0',
         'date': '2026-08-25',
@@ -1765,7 +1918,11 @@ def system_docs():
 def list_notifications():
     try:
         current_user = get_jwt_identity()
-        records = Notification.query.filter_by(username=current_user).order_by(Notification.id.desc()).limit(50).all()
+        ensure_system_update_notification(current_user)
+        records = Notification.query.filter_by(username=current_user).all()
+        # 系统更新通知置顶，其余按时间倒序
+        records.sort(key=lambda n: (0 if n.type == 'system' else 1, -n.id))
+        records = records[:50]
         notifications = [{
             'id': n.id,
             'type': n.type,

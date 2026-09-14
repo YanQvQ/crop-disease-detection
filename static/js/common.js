@@ -693,17 +693,152 @@ async function fetchModels() {
 // 仅对本站路径追加（相对路径或以当前 origin 开头的完整 URL），避免把 token 泄露给第三方 URL
 function fileUrl(path) {
   if (!path) return path;
+  // 兼容历史数据：库里可能存的是含主机名(如局域网IP)的绝对地址，
+  // 统一截取 path 部分转相对，避免因主机不同导致跨源图片被浏览器拦截(ERR_BLOCKED_BY_ORB)。
+  if (path.indexOf('://') !== -1) {
+    try {
+      const u = new URL(path, window.location.href);
+      if (u.pathname.startsWith('/files/') || u.pathname.startsWith('/static/')) {
+        path = u.pathname + u.search;
+      }
+    } catch (e) { /* 非标准 URL 保留原值 */ }
+  }
   const origin = window.location.origin;
   if (path.startsWith(origin + '/')) {
     // 本站完整 URL：转为相对路径，避免硬编码 host
     path = path.slice(origin.length);
   }
-  const isLocal = path.startsWith('/') || path.indexOf('://') === -1;
-  if (!isLocal) return path;
   const token = TokenManager.getToken();
   if (!token) return path;
   const sep = path.includes('?') ? '&' : '?';
   return path + sep + 'token=' + encodeURIComponent(token);
+}
+
+// 病害知识库：按类别名(小写)索引 → { name_zh, pathogen, symptoms, treatment, ... }
+let _diseaseInfoPromise = null;
+function loadDiseaseInfo() {
+  if (!_diseaseInfoPromise) {
+    _diseaseInfoPromise = fetch('/static/crop_diseases.json')
+      .then(r => { if (!r.ok) throw new Error('load failed'); return r.json(); })
+      .then(data => {
+        // 注：disease key 与 YOLO 模型类别名（不区分大小写）对齐，故健康分类保留 health/healthy_rice/healthy_wheat 三个不同 key
+        const map = {};
+        const cropsObj = (data && data.crops) ? data.crops : data; // 兼容旧结构
+        Object.values(cropsObj).forEach(group => {
+          const diseases = group.diseases || group; // 兼容旧结构（分组直接为病害映射）
+          Object.entries(diseases).forEach(([key, val]) => { map[key.toLowerCase()] = val; });
+        });
+        return map;
+      })
+      .catch(() => { _diseaseInfoPromise = null; return {}; });
+  }
+  return _diseaseInfoPromise;
+}
+
+function _treatItemHtml(item) {
+  if (!item) return '';
+  if (typeof item === 'string') return `<li>${escapeHtml(item)}</li>`;
+  const type = item.type ? `<strong>${escapeHtml(item.type)}：</strong>` : '';
+  return `<li>${type}${escapeHtml(item.detail || '')}</li>`;
+}
+
+function _diseaseCardHtml(cls, confPct, info, count, low) {
+  const countBadge = (count > 1) ? `<span class="disease-count">×${count}</span>` : '';
+  const lowBadge = low ? `<span class="disease-low">低置信度·建议核实</span>` : '';
+  const title = (info && info.name_zh) ? info.name_zh : (cls || '未知病害');
+  let html = `<div class="disease-card${low ? ' is-low' : ''}"><div class="disease-card-header"><span class="disease-zh">${escapeHtml(title)}</span><span class="disease-name-en">${info && info.name_en ? escapeHtml(info.name_en) : ''}</span>${countBadge}${lowBadge}${confPct ? `<span class="disease-conf">${confPct}</span>` : ''}</div>`;
+  if (!info || !info.symptoms) {
+    let note = `<div class="disease-card-note">未收录该病害的详细防治资料，建议结合田间实地情况，咨询当地农技专家、农业部门或专业人士进一步确认。如需更详细的防治信息，可联系管理员补充该病害资料。</div>`;
+    if (window.TokenManager && TokenManager.getUserRole() === 'admin') {
+      note += `<div class="disease-card-missing">管理提示：该病害（${escapeHtml(cls)}）未在 <code>static/crop_diseases.json</code> 收录，可在其中新增对应资料后强制刷新生效。</div>`;
+    }
+    html += note;
+  } else {
+    if (info.symptoms) html += `<div class="detail-row"><div class="detail-row-label">识病要点</div><div class="detail-row-value">${escapeHtml(info.symptoms)}</div></div>`;
+    if (info.conditions) html += `<div class="detail-row"><div class="detail-row-label">发病条件</div><div class="detail-row-value">${escapeHtml(info.conditions)}</div></div>`;
+    if (Array.isArray(info.treatment) && info.treatment.length) {
+      html += `<div class="disease-treat"><div class="disease-treat-label">防治建议</div><ul class="treat-list">${info.treatment.map(_treatItemHtml).join('')}</ul><div class="disease-treat-note">以上用药建议仅供科普参考，不构成用药指导。实际用药请以当地登记产品与说明书为准，使用前核对当地农药禁限用名录，规范轮换用药并遵守安全间隔期。具体防治方案请结合田间实地情况，咨询当地农技专家或专业人士后实施。</div></div>`;
+    }
+  }
+  html += '</div>';
+  return html;
+}
+
+// 统一置信度为百分比字符串：开启"四舍五入"→整数百分比（87%）；关闭→保留精确值（86.87%）。兼容 "92.34%"（图片记录）与 0.9234（视频/摄像头记录）
+function _confToPct(v) {
+  if (v == null) return '';
+  const s = String(v).trim();
+  const isPct = s.endsWith('%');
+  let n = parseFloat(s);
+  if (isNaN(n)) return '';
+  if (!isPct && n <= 1) n = n * 100;
+  const shouldRound = localStorage.getItem('confidenceRound') !== '0';
+  if (shouldRound) return Math.round(n) + '%';
+  return n.toFixed(2).replace(/\.?0+$/, '') + '%';
+}
+
+// 归一化置信度为 0~1 数值：兼容 "92.34%"（图片记录）与 0.9234（视频/摄像头记录）以及 "78.5%"
+function _confToRatio(v) {
+  if (v == null) return null;
+  const s = String(v).trim();
+  const isPct = s.endsWith('%');
+  const n = parseFloat(s);
+  if (isNaN(n)) return null;
+  return (isPct || n > 1) ? n / 100 : n;
+}
+
+// 单条置信度是否偏低：基于真实置信度（<80%），与"四舍五入"开关无关，
+// 避免显示值被四舍五入成 80% 后漏报 79.6% 这类本应预警的结果
+function _isLowConfidence(v) {
+  const ratio = _confToRatio(v);
+  return ratio != null && ratio < 0.8;
+}
+
+// 知识库查找：先精确匹配，匹配不上则去掉括号内中文后缀再匹配（兼容 "blight（疫病）" -> "blight"）
+function _lookupDisease(map, lbl) {
+  if (!lbl) return undefined;
+  const raw = String(lbl).trim();
+  const lower = raw.toLowerCase();
+  if (map[lower]) return map[lower];
+  const stripped = raw.split(/[（(]/)[0].trim().toLowerCase();
+  if (stripped && stripped !== lower && map[stripped]) return map[stripped];
+  return undefined;
+}
+
+// 将标签按相同类别分组：同一类别只保留一条，附出现次数，置信度取组内最高
+function _groupLabels(labels, confs) {
+  const out = [];
+  const idx = new Map();
+  (labels || []).forEach((l, i) => {
+    const key = String(l == null ? '' : l);
+    const conf = confs && confs[i];
+    const ratio = _confToRatio(conf);
+    if (idx.has(key)) {
+      const e = out[idx.get(key)];
+      e.count += 1;
+      if (ratio != null && (e._ratio == null || ratio > e._ratio)) { e._ratio = ratio; e.conf = conf; }
+    } else {
+      idx.set(key, out.length);
+      out.push({ label: l, conf: conf, count: 1, _ratio: ratio });
+    }
+  });
+  return out;
+}
+
+// 在指定容器中渲染一份记录的检测结果与防治建议
+function renderDiseaseBlock(labels, confs, el) {
+  return loadDiseaseInfo().then(map => {
+    if (!el) return;
+    if (!labels || labels.length === 0) {
+      el.innerHTML = '<div class="detail-diseases-empty">该记录未检测到病害。可能存在两种情况：作物确实健康，或病害程度较轻/姿态不佳未被模型检出。建议结合田间实地情况综合判断，必要时请当地农技专家进一步确认。</div>';
+      return;
+    }
+    const cards = _groupLabels(labels, confs).map(g => {
+      const info = _lookupDisease(map, g.label);
+      return _diseaseCardHtml(g.label, _confToPct(g.conf), info, g.count, _isLowConfidence(g.conf));
+    });
+    el.innerHTML = '<div class="detail-diseases-title">检测结果与防治建议</div>' + cards.join('');
+  });
 }
 
 // 导出模块
@@ -733,7 +868,30 @@ window.Utils = {
   fetchModels,
   fileUrl,
   requireAuth,
-  requireAdmin
+  requireAdmin,
+  loadDiseaseInfo,
+  renderDiseaseBlock,
+  groupLabels: _groupLabels,
+  confToPct: _confToPct,
+  isLowConfidence: _isLowConfidence,
+
+  // 侧边栏：桌面端切换 collapsed（收起），移动端切换 open（展开 + 遮罩）。
+  // 两个 class 互斥切换，避免残留导致遮罩/收起状态错乱。
+  toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const mainWrapper = document.getElementById('mainWrapper');
+    if (!sidebar) return;
+    const isMobile = window.matchMedia('(max-width: 900px)').matches;
+    if (isMobile) {
+      sidebar.classList.remove('collapsed');
+      sidebar.classList.toggle('open');
+      if (mainWrapper) mainWrapper.classList.remove('sidebar-collapsed');
+    } else {
+      sidebar.classList.remove('open');
+      sidebar.classList.toggle('collapsed');
+      if (mainWrapper) mainWrapper.classList.toggle('sidebar-collapsed');
+    }
+  }
 };
 
 // 快捷访问
@@ -773,4 +931,15 @@ document.addEventListener('DOMContentLoaded', function() {
     const mainWrapper = document.getElementById('mainWrapper');
     if (mainWrapper) mainWrapper.classList.remove('sidebar-collapsed');
   });
+
+  // 跨 900px 断点时归整残留状态，避免 open/collapsed 互相干扰
+  const mq = window.matchMedia('(max-width: 900px)');
+  const normalizeSidebar = () => {
+    if (mq.matches) {
+      sidebar.classList.remove('collapsed');
+    } else {
+      sidebar.classList.remove('open');
+    }
+  };
+  mq.addEventListener ? mq.addEventListener('change', normalizeSidebar) : mq.addListener(normalizeSidebar);
 });

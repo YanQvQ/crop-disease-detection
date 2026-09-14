@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/css/common.css">
+  <link rel="stylesheet" href="/static/css/sidebar.css?v=1">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Inter', 'PingFang SC', 'Microsoft YaHei', sans-serif; background: #f0fdf4; }
@@ -179,18 +180,24 @@
                 <div class="stat-item"><div class="stat-val" id="detectCount">0</div><div class="stat-lbl">检测到病害</div></div>
               </div>
             </div>
+
+            <div class="result-labels" id="resultLabels"></div>
+            <div class="result-warning" id="resultWarning" style="display:none;">
+              <div class="result-warning-text">本次检测存在置信度不足 80% 的病害，结果可能存在偏差。建议结合田间实地情况，并联系当地农技专家或专业人士进一步确认后再采取防治措施。</div>
+            </div>
+            <div class="detail-diseases" id="resultDiseases"></div>
           </div>
         </div>
       </main>
     </div>
   </div>
 
-  <script src="/static/js/common.js"></script>
+  <script src="/static/js/common.js?v=2"></script>
   <script>
     if (!Utils.requireAuth()) {}
     let isRunning = false;
     const sidebar = document.getElementById('sidebar'); const mainWrapper = document.getElementById('mainWrapper');
-    document.getElementById('menuToggle').addEventListener('click', () => { sidebar.classList.toggle('open'); mainWrapper.classList.toggle('sidebar-collapsed'); });
+    document.getElementById('menuToggle').addEventListener('click', () => { Utils.toggleSidebar(); });
 
     async function loadUserInfo() { try { const res = await Utils.apiGet('/api/user/me'); if (res.code === 0) { const user = res.data; document.getElementById('userName').textContent = user.name || user.username; document.getElementById('userRole').textContent = user.role === 'admin' ? '管理员' : '普通用户'; document.getElementById('userAvatar').textContent = (user.name || user.username).charAt(0); if (user.role === 'admin') document.getElementById('navUserManage').style.display = 'flex'; } } catch (error) { console.error('获取用户信息失败:', error); } }
     async function loadModels() { try { const models = await Utils.fetchModels(); const select = document.getElementById('modelSelect'); if (models.length > 0) select.innerHTML = models.map(m => `<option value="${m.value}">${m.label}</option>`).join(''); else select.innerHTML = '<option value="">暂无可用模型</option>'; } catch (error) { console.error('加载模型失败:', error); } }
@@ -241,7 +248,7 @@
 
     async function stopCamera() {
       try {
-        await Utils.apiPost('/api/stopCamera', {});
+        const res = await Utils.apiPost('/api/stopCamera', {});
         const video = document.getElementById('cameraVideo');
         if (video.srcObject) { video.srcObject.getTracks().forEach(t => t.stop()); video.srcObject = null; }
         isRunning = false;
@@ -251,7 +258,41 @@
         document.getElementById('cameraPlaceholder').style.display = 'flex';
         updateStatus('warning', '已停止', '摄像头检测已停止');
         Utils.showToast('已停止', '摄像头检测已停止', 'info');
+
+        let labels = []; let confs = [];
+        try { labels = Utils.parseList(res.labels) || []; } catch (e) {}
+        try { confs = Utils.parseList(res.confs) || []; } catch (e) {}
+        renderCameraResult(labels, confs);
       } catch (error) { console.error('停止失败:', error); Utils.showToast('停止失败', error.message, 'error'); }
+    }
+
+    function renderCameraResult(labels, confs) {
+      document.getElementById('detectCount').textContent = labels.length;
+      const labelsContainer = document.getElementById('resultLabels');
+      if (!labelsContainer) return;
+      if (labels.length > 0) {
+        labelsContainer.innerHTML = Utils.groupLabels(labels, confs).map(g => {
+          const c = g.conf != null ? ` (${Utils.confToPct(g.conf)})` : '';
+          const low = Utils.isLowConfidence(g.conf) ? '<span class="tag-low">建议核实</span>' : '';
+          const cnt = g.count > 1 ? `<span class="tag-count">×${g.count}</span>` : '';
+          return `<span class="label-tag">${Utils.escapeHtml(g.label)}${c}${low}${cnt}</span>`;
+        }).join('');
+      } else {
+        labelsContainer.innerHTML = '<span class="label-tag">未检测到病害</span><div class="label-empty-tip">可能为作物健康、病害较轻或姿态不佳未被检出，也可能是所选模型不匹配该类病害。建议确认模型后重试，并结合田间实地情况综合判断。</div>';
+      }
+
+      const warningEl = document.getElementById('resultWarning');
+      warningEl.style.display = confs.some(c => Utils.isLowConfidence(c)) ? 'block' : 'none';
+      if (confs.some(c => Utils.isLowConfidence(c))) {
+        Utils.showToast('识别置信度偏低', '本次摄像头检测存在置信度不足 80% 的病害，结果可能存在偏差。建议结合田间实地情况，并联系当地农技专家或专业人士进一步确认后再采取防治措施。', 'warning');
+      }
+
+      const diseasesEl = document.getElementById('resultDiseases');
+      if (labels.length > 0) {
+        Utils.renderDiseaseBlock(labels, confs, diseasesEl);
+      } else {
+        diseasesEl.innerHTML = '';
+      }
     }
 
     function updateStatus(type, title, desc) {
